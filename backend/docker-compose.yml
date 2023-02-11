@@ -1,0 +1,29 @@
+version: "3.3"
+services:
+
+  emailtidy-db:
+    container_name: emailtidy-db
+    env_file:
+      - .env
+    image: emailtidy-db
+    build:
+      context: ./db
+    ports:
+      - 5432:5432
+
+  emailtidy-py:
+    container_name: emailtidy-py
+    env_file:
+      - .env
+    image: emailtidy-py
+    depends_on:
+      - emailtidy-db
+    build:
+      context: ./py
+    ports:
+      - 80:80
+    volumes:
+      # Bind these volumns for easy development without having to restart the containers. Remove for production.
+      - type: bind
+        source: py/app
+        target: /app
