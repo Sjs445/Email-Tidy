@@ -15,7 +15,7 @@ from app.config import security
 
 class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUpdate]):
     def get_by_email(self, db: Session, *, email: str) -> Optional[LinkedEmails]:
-        """Get a linked_email by email addres.
+        """Get a linked_email by email address.
 
         Args:
             db (Session): The db session
@@ -61,12 +61,8 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
 
         # Encrypt the app password for this linked_email
         obj_in.password = security.encrypt_email_password(obj_in.password)
-        obj_in_data = jsonable_encoder(obj_in)
-        linked_email = self.model(**obj_in_data, user_id=user_id)
-        db.add(linked_email)
-        db.commit()
-        db.refresh(linked_email)
-        return linked_email
+        obj_in.user_id = user_id
+        return self.create(db, obj_in=obj_in)
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)

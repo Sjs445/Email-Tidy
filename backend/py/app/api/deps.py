@@ -11,9 +11,7 @@ from app.config.security import ALGORITHM
 from app import crud, models, schemas
 
 
-reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
-)
+reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
 
 
 def get_current_user(

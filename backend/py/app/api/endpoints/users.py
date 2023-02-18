@@ -29,5 +29,6 @@ def register_user(
         )
     user = crud.user.create(db, obj_in=user_in)
 
+    # TODO login the user after registering. Give them a session.
     # TODO send welcome email here
-    return {"success": True}
+    return {"id": user.id}

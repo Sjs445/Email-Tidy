@@ -11,6 +11,7 @@ class LinkedEmailsBase(BaseModel):
 class LinkedEmailsCreate(LinkedEmailsBase):
     email: EmailStr
     password: str
+    user_id: int = None
 
 
 class LinkedEmailsUpdate(LinkedEmailsBase):

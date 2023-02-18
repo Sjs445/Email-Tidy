@@ -37,6 +37,23 @@ class CRUDUser(CRUDBase[User, UserCreate, UserUpdate]):
             update_data["password"] = hashed_password
         return super().update(db, db_obj=db_obj, obj_in=update_data)
 
+    def remove(self, db: Session, *, id: int, email: str) -> User:
+        """Remove a user's account from the db.
+        Overloaded from the base class to include id and email.
+
+        Args:
+            db (Session): The db session
+            id (int): The user id
+            email (str): The user's email
+
+        Returns:
+            User: The user object
+        """
+        obj = db.query(self.model).get({"id": id, "email": email})
+        db.delete(obj)
+        db.commit()
+        return obj
+
     def authenticate(self, db: Session, *, email: str, password: str) -> Optional[User]:
         user = self.get_by_email(db, email=email)
         if not user:
