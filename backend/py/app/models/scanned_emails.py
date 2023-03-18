@@ -14,4 +14,7 @@ class ScannedEmails(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email_from = Column(String, nullable=False)
     subject = Column(String)
-    linked_email_address = Column(String, ForeignKey("linked_emails.email"))
+    linked_email_address = Column(
+        String,
+        ForeignKey("linked_emails.email", ondelete="CASCADE", onupdate="CASCADE"),
+    )

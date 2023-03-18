@@ -62,7 +62,13 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         # Encrypt the app password for this linked_email
         obj_in.password = security.encrypt_email_password(obj_in.password)
         obj_in.user_id = user_id
-        return self.create(db, obj_in=obj_in)
+        db_obj = LinkedEmails(
+            email=obj_in.email, password=obj_in.password, user_id=obj_in.user_id
+        )
+        db.add(db_obj)
+        db.commit()
+        db.refresh(db_obj)
+        return db_obj
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)

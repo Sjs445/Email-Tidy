@@ -1,7 +1,10 @@
 import random
 import string
 
+from datetime import timedelta
+
 from app.crud import crud_user
+from app.config import security
 from app.models.users import User
 from app.database.database import SessionLocal
 from app.schemas.users import UserCreate
@@ -37,3 +40,17 @@ def generate_user(db: Session) -> User:
         ),
     )
     return user
+
+
+def generate_auth_header(user_id: int) -> dict:
+    """Generate an authorization header.
+
+    Args:
+        user_id (int): The user id to generate the header for
+
+    Returns:
+        dict: The header info
+    """
+    return {
+        "Authorization": f"Bearer {security.create_access_token(user_id, expires_delta=timedelta(minutes=5))}"
+    }

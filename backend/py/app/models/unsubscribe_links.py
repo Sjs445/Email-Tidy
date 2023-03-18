@@ -23,5 +23,10 @@ class UnsubscribeLinks(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     link = Column(String, nullable=False)
     unsubscribe_status = Column(Enum(UnsubscribeStatus), nullable=False)
-    scanned_email_id = Column(Integer, ForeignKey("scanned_emails.id"))
-    linked_email_address = Column(String, ForeignKey("linked_emails.email"))
+    scanned_email_id = Column(
+        Integer, ForeignKey("scanned_emails.id", ondelete="CASCADE", onupdate="CASCADE")
+    )
+    linked_email_address = Column(
+        String,
+        ForeignKey("linked_emails.email", ondelete="CASCADE", onupdate="CASCADE"),
+    )

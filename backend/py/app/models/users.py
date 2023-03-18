@@ -20,5 +20,5 @@ class User(Base):
     is_superuser = Column(Boolean(), default=False)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
-    linked_emails = relationship("LinkedEmails")
+    linked_emails = relationship("LinkedEmails", passive_deletes=True)
     PrimaryKeyConstraint("id", "email", name="users_pk")
