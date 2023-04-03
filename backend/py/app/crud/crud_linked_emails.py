@@ -1,6 +1,6 @@
 import re
 
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
@@ -26,6 +26,27 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         """
         return db.query(LinkedEmails).filter(LinkedEmails.email == email).first()
 
+    def get_by_user_id(self, db: Session, *, user_id: int) -> List[dict]:
+        """Get all linked_email entries by user_id
+
+        Args:
+            db (Session): The db session
+            user_id (int): the user_id
+
+        Returns:
+            List[dict]: A list of dictionary data about the linked emails
+        """
+        results = (
+            db.query(LinkedEmails.email, LinkedEmails.id, LinkedEmails.is_active)
+            .filter(LinkedEmails.user_id == user_id)
+            .all()
+        )
+
+        return [
+            {"email": result[0], "id": result[1], "is_active": result[2]}
+            for result in results
+        ]
+
     def create_with_user(
         self, db: Session, *, obj_in: LinkedEmailsCreate, user_id: int
     ) -> LinkedEmails:
@@ -39,17 +60,7 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         Returns:
             LinkedEmails: The newly created linked_email object
         """
-
-        # Get the email domain
-        domain_match = re.search(r"@[\w\-]+", obj_in.email)
-        if not domain_match:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Could not find email domain for email: {obj_in.email}",
-            )
-
-        # Chop off the '@'
-        domain = domain_match.group()[1:]
+        domain = EmailUnsubscriber.get_domain_from_email(obj_in.email)
         email_unsubscriber = EmailUnsubscriber(email_type=domain)
 
         if not email_unsubscriber.login(
@@ -58,6 +69,7 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
             raise HTTPException(
                 status_code=400, detail=f"Login failed for email: {obj_in.email}"
             )
+        del email_unsubscriber
 
         # Encrypt the app password for this linked_email
         obj_in.password = security.encrypt_email_password(obj_in.password)

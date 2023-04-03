@@ -1,5 +1,6 @@
 from .crud_user import user
 from .crud_linked_emails import linked_email
+from .crud_scanned_emails import scanned_emails
 
 # For a new basic set of CRUD operations you could just do
 

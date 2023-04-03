@@ -5,12 +5,15 @@ import re
 import requests
 import lxml.html
 
+from sqlalchemy.orm import Session
 from email.header import decode_header
 from email.message import Message
 from email.header import Header
 from fastapi import HTTPException
 from imaplib import IMAP4_SSL
 from typing import List, Tuple, Union
+
+from app.models import ScannedEmails, UnsubscribeLinks, UnsubscribeStatus
 
 
 class EmailUnsubscriber:
@@ -44,6 +47,7 @@ class EmailUnsubscriber:
             )
 
         self.email_type = email_type
+        self.email = None
 
         # Now login to the imap server
         imap_server = self.SUPPORTED_IMAP_SERVERS[email_type]
@@ -83,23 +87,49 @@ class EmailUnsubscriber:
         # NOTE: Can raise Exception if email_username and password is incorrect.
         try:
             self.imap.login(email_username, email_password)
+            self.email = email_username
         except:
             return False
         return True
 
+    def get_domain_from_email(email_address: str) -> str:
+        """Get an email address domain from an email address
+
+        Args:
+            email_address (str): the email address
+
+        Returns:
+            str: The email domain
+        """
+        # Get the email domain
+        domain_match = re.search(r"@[\w\-]+", email_address)
+        if not domain_match:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Could not find email domain for email: {email_address}",
+            )
+
+        # Chop off the '@'
+        domain = domain_match.group()[1:]
+        return domain
+
     def get_unsubscribe_links_from_inbox(
-        self, how_many: int = None, order_by: str = "desc"
-    ) -> None:
+        self, db: Session, how_many: int = None, order_by: str = "desc"
+    ) -> int:
         """Iterate through the Inbox looking through the email body for
         words in `self.UNSUBSCRIBE_KEYWORDS`.
         If one of the keywords is found in the email body we look for a
         possible link that is following the position of said found keyword.
 
         Args:
+            db (Session): The db session
             how_many (int, optional): Number of emails to fetch from inbox descending.
                 Defaults to all emails in the Inbox.
             order_by (str, optional): Method of getting the emails, i.e. 'desc', 'asc'.
                 Defaults to 'desc'.
+
+        Returns:
+            int: the number of emails scanned
         """
         status, messages = self.imap.select("INBOX")
         if status != "OK":
@@ -158,19 +188,34 @@ class EmailUnsubscriber:
                 email_msg["From"], email_msg["Subject"]
             )
 
+            # Insert the scanned_email info into the db.
+            scanned_email = ScannedEmails(
+                email_from=email_from,
+                subject=email_subject,
+                linked_email_address=self.email,
+            )
+            db.add(scanned_email)
+            db.flush()
+
             # Get unsubscribe links
             unsubscribe_links = self._get_unsubscribe_links_from_email(
                 email_msg, email_subject
             )
 
-            if unsubscribe_links:
-                self.unsubscriber_info.append(
-                    {
-                        "subject": email_subject,
-                        "links": unsubscribe_links,
-                        "from": email_from,
-                    }
+            # Add all unsubscribe links to the unsubscribe_links table
+            unsubscribe_link_objs = []
+            for link in unsubscribe_links:
+                unsubscribe_link_objs.append(
+                    UnsubscribeLinks(
+                        link=link,
+                        unsubscribe_status=UnsubscribeStatus.pending,
+                        linked_email_address=self.email,
+                        scanned_email_id=scanned_email.id,
+                    )
                 )
+            db.add_all(unsubscribe_links)
+            db.flush()
+
             current_iteration += 1
             # print_progress(
             #     current_iteration=current_iteration,
@@ -181,7 +226,7 @@ class EmailUnsubscriber:
 
         # Close the INBOX
         self.imap.close()
-        # print_success("Done fetching emails!")
+        return current_iteration
 
     @staticmethod
     def decode_from_and_subject(
@@ -238,9 +283,7 @@ class EmailUnsubscriber:
 
         # A multipart email message may contain both a text/plain AND text/html email.
         if email_msg.is_multipart():
-
             for part in email_msg.walk():
-
                 # Get the Content-Type
                 content_type = part.get_content_type()
                 body = part.get_payload()
@@ -257,9 +300,12 @@ class EmailUnsubscriber:
                         #     f"Was unable to decode body for email: {email_subject}\nError: {e}"
                         # )
                         continue
-                    unsubscribe_links = cls._get_unsubscribe_links_from_text_plain(
-                        body=body, unsubscribe_links=unsubscribe_links
-                    )
+                    found_links = cls._get_unsubscribe_links_from_text_plain(body=body)
+
+                    # Don't add duplicate links
+                    for link in found_links:
+                        if link not in unsubscribe_links:
+                            unsubscribe_links.append(link)
 
                 # Parse a text/html email
                 elif content_type == "text/html":
@@ -273,9 +319,12 @@ class EmailUnsubscriber:
                         #     f"Was unable to decode body for email: {email_subject}\nError: {e}"
                         # )
                         continue
-                    unsubscribe_links = cls._get_unsubscribe_links_from_html(
-                        body=body, unsubscribe_links=unsubscribe_links
-                    )
+                    found_links = cls._get_unsubscribe_links_from_html(body=body)
+
+                    # Don't add duplicate links
+                    for link in found_links:
+                        if link not in unsubscribe_links:
+                            unsubscribe_links.append(link)
 
         # When the email is not multipart we can pass decode=True to get_payload() to decode the email for us.
         else:
@@ -294,20 +343,17 @@ class EmailUnsubscriber:
         return unsubscribe_links
 
     @classmethod
-    def _get_unsubscribe_links_from_html(
-        cls, body: str, unsubscribe_links: list = None
-    ) -> list:
+    def _get_unsubscribe_links_from_html(cls, body: str) -> list:
         """Look for unsubscribe links in the body of the email
         as an html email.
 
         Args:
             body (str): The body of the email.
-            unsubscribe_links (list, optional): The current found unsubscribe links.
 
         Returns:
             list: The unsubscribe links found.
         """
-        unsubscribe_links = unsubscribe_links.copy() or []
+        unsubscribe_links = []
 
         # Scrub the html by removing \n and \r characters
         html = body.replace("\n", "").replace("\r", "")
@@ -318,7 +364,6 @@ class EmailUnsubscriber:
         # Get html <a> elements that only contain unsubscribe keywords
         # For example <a href="https://example_link.com/unsub_from_me">unsubscribe</a>
         for unsub_keyword in cls.UNSUBSCRIBE_KEYWORDS:
-
             # Semi HACK way of checking for upper case characters, use .title()
             link_elements = element_tree.xpath(
                 f'.//a[contains(text(), "{unsub_keyword}")]'
@@ -337,28 +382,23 @@ class EmailUnsubscriber:
         return unsubscribe_links
 
     @classmethod
-    def _get_unsubscribe_links_from_text_plain(
-        cls, body: str, unsubscribe_links: list = None
-    ) -> list:
+    def _get_unsubscribe_links_from_text_plain(cls, body: str) -> list:
         """Look for unsubscribe links in the body of the email as a
         plain text email.
 
         Args:
             body (str): The body of the email.
-            unsubscribe_links (list, optional): The unsubscribe links found.
 
         Returns:
             list: The unsubscribe links found.
         """
-        unsubscribe_links = unsubscribe_links.copy() or []
+        unsubscribe_links = []
 
         # Look for unsubscribe keywords, some emails have totally different keywords used for their unsubscribe hyperlinks.
         for unsub_keyword in cls.UNSUBSCRIBE_KEYWORDS:
-
             unsub_idx = body.lower().find(unsub_keyword)
 
             if unsub_idx != -1:
-
                 # Remove \n and \r characters out of the body to sanitize the link.
                 trimmed_body = body[unsub_idx:].replace("\n", "").replace("\r", "")
 
@@ -388,7 +428,6 @@ class EmailUnsubscriber:
 
         if unsubscribe_from == "all":
             for emailer in self.unsubscriber_info:
-
                 # If this emailer has unsubscribe links go through and try each link. If we encounter a '200 OK'
                 # write the response as an html file in unsubscribe_response/<emailer>.
                 self.unsubscribe_and_write_response(emailer)
@@ -396,7 +435,6 @@ class EmailUnsubscriber:
 
         # User has selected a range of emailers to unsubscribe from.
         elif range is not None and len(range) == 2:
-
             if range[0] > range[1]:
                 # print_error(
                 #     f"First range arg: {range[0]} should be greater than second range arg: {range[1]}"
@@ -414,7 +452,6 @@ class EmailUnsubscriber:
 
         # User has selected a single emailer to unsubscribe from.
         else:
-
             if unsubscribe_from > len(self.unsubscriber_info):
                 # print_error(f"Range arg: {unsubscribe_from} out of range!")
                 return

@@ -10,17 +10,20 @@ from app.config.security import decrypt_email_password
 class TestLinkEmail:
     """Test link email class"""
 
-    def setup_method(self) -> None:
-        self.client = TestClient(app)
-        self.session = get_session()
-        self.user = generate_user(self.session)
-        self.auth_header = generate_auth_header(self.user.id)
+    @classmethod
+    def setup_class(cls) -> None:
+        cls.client = TestClient(app)
+        cls.session = get_session()
+        cls.user = generate_user(cls.session)
+        cls.auth_header = generate_auth_header(cls.user.id)
 
-    def teardown_method(self) -> None:
-        if self.user is not None:
-            crud_user.user.remove(self.session, id=self.user.id, email=self.user.email)
-        self.session.close()
+    @classmethod
+    def teardown_class(cls) -> None:
+        if cls.user is not None:
+            crud_user.user.remove(cls.session, id=cls.user.id, email=cls.user.email)
+        cls.session.close()
 
+    # This mock ensures we don't actually try to login to this email address
     @mock.patch(
         "app.objects.email_unsubscriber.IMAP4_SSL.login",
         return_value=True,
@@ -46,3 +49,17 @@ class TestLinkEmail:
             self.session, email="email@yahoo.com"
         )
         assert decrypt_email_password(linked_email.password) == "123abcmnbiou"
+
+    def test_get_linked_emails(self) -> None:
+        """Test getting a list of currently linked_emails
+
+        Routes tested:
+            /linked_emails/linked_emails
+        """
+        response = self.client.get(
+            "/linked_emails/linked_emails",
+            headers=self.auth_header,
+        ).json()
+        assert response.get("linked_emails") == [
+            {"email": "email@yahoo.com", "id": mock.ANY, "is_active": True}
+        ]

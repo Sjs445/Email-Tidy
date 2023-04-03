@@ -33,3 +33,21 @@ def link_email(
     email = crud.linked_email.create_with_user(db, obj_in=email_info, user_id=user.id)
 
     return {"success": bool(email)}
+
+
+@router.get("/linked_emails")
+def get_linked_emails(
+    *,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Get a list of linked_emails owned by the session user.
+
+    Args:
+        db (Session): The db session.
+        user (models.User): The session user.
+
+    Returns:
+        dict: the linked email info owned by the user
+    """
+    return {"linked_emails": crud.linked_email.get_by_user_id(db=db, user_id=user.id)}

@@ -18,7 +18,7 @@ class LinkedEmailsUpdate(LinkedEmailsBase):
     password: Optional[str] = None
 
 
-class LinkedEmialsInDBBase(LinkedEmailsBase):
+class LinkedEmailsInDBBase(LinkedEmailsBase):
     id: Optional[int] = None
 
     class Config:
