@@ -25,5 +25,5 @@ services:
     volumes:
       # Bind these volumns for easy development without having to restart the containers. Remove for production.
       - type: bind
-        source: py/app
+        source: ./py/app
         target: /app
