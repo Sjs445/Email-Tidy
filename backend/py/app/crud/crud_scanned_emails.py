@@ -1,14 +1,10 @@
-import re
-
-from typing import List, Optional
+from typing import List
 
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
 from app.models.scanned_emails import ScannedEmails
-from app.models.unsubscribe_links import UnsubscribeLinks
 from app.models.linked_emails import LinkedEmails
 from app.objects.email_unsubscriber import EmailUnsubscriber
 from app.schemas.scanned_emails import (
@@ -68,7 +64,11 @@ class CRUDScannedEmails(
         return scanned
 
     def get_scanned_emails(
-        self, db: Session, *, page: int = 0, email_from: str = None
+        self,
+        db: Session,
+        *,
+        page: int = 0,
+        email_from: str = None,
     ) -> List[dict]:
         """Get a paginated list of scanned emails. Optionally filter by a specific email from address.
 
@@ -80,16 +80,37 @@ class CRUDScannedEmails(
         Returns:
             List[dict]: The scanned email data
         """
-        # TODO: Try to get the scanned_email data with a count of their unsubscribe_links
-        # results = db.execute(
-        #     """SELECT se.id, se.email_from, se.subject, se.linked_email_address
-        #     FROM scanned_emails AS se
-        #     INNER JOIN unsubscribe_links AS ul
-        #     ON se.id = ul.scanned_email_id
+        # TODO: TEST paginate data
+        # TODO: TEST optionally filter by "email_from"
+        where = ""
+        bind = {}
+        if email_from is not None and isinstance(email_from, str):
+            where += "WHERE scanned_emails.email_from = :email_from"
+            bind["email_from"] = email_from
 
-        #     """
-        # )
-        return []
+        results = db.execute(
+            f"""SELECT scanned_emails.*, COUNT(unsubscribe_links.scanned_email_id) AS link_count
+                    FROM scanned_emails
+                LEFT OUTER JOIN unsubscribe_links
+                    ON unsubscribe_links.scanned_email_id = scanned_emails.id
+                {where}
+                GROUP BY scanned_emails.id
+                ORDER BY scanned_emails.id -- TODO: change this order by to insert_ts once column is added
+                LIMIT 10
+                OFFSET {page}
+            """,
+            bind,
+        ).all()
+        return [
+            {
+                "id": res[0],
+                "email_from": res[1],
+                "subject": res[2],
+                "linked_email_address": res[3],
+                "link_count": res[4],
+            }
+            for res in results
+        ]
 
 
 scanned_emails = CRUDScannedEmails(ScannedEmails)

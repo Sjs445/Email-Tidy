@@ -2,6 +2,7 @@ import random
 import string
 
 from datetime import timedelta
+from email.message import EmailMessage
 
 from app.crud import crud_user
 from app.config import security
@@ -54,3 +55,30 @@ def generate_auth_header(user_id: int) -> dict:
     return {
         "Authorization": f"Bearer {security.create_access_token(user_id, expires_delta=timedelta(minutes=5))}"
     }
+
+
+def generate_email_message(
+    to_email: str, from_email: str, subject: str, body: str
+) -> EmailMessage:
+    """Generate an email message object. Currently only supports html
+    emails. TODO: text/plain
+
+    Args:
+        to_email (str): The recipient email address
+        from_email (str): The sender email address
+        subject (str): The subject of the email
+        body (str): The body of the email
+
+    Returns:
+        EmailMessage: The email message object
+    """
+    message = EmailMessage()
+
+    message.add_header("To", to_email)
+    message.add_header("From", from_email)
+    message.add_header("Subject", subject)
+    message.set_content(body)
+
+    # TODO: pass a param for either text/plain or text/html?
+    message.replace_header("content-type", "text/html")
+    return message

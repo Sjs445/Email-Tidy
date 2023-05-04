@@ -26,6 +26,7 @@ class EmailUnsubscriber:
         "opt-out",
         "opt out",
         "if you no longer wish to receive this email",
+        "subscription",
     ]
     SUPPORTED_IMAP_SERVERS = {
         "yahoo": "imap.mail.yahoo.com",
@@ -183,38 +184,8 @@ class EmailUnsubscriber:
             # Get the email as an email object
             email_msg = email.message_from_bytes(msg[0][1])
 
-            # Get the email sender and convert from bytes if necessary
-            email_from, email_subject = self.decode_from_and_subject(
-                email_msg["From"], email_msg["Subject"]
-            )
-
-            # Insert the scanned_email info into the db.
-            scanned_email = ScannedEmails(
-                email_from=email_from,
-                subject=email_subject,
-                linked_email_address=self.email,
-            )
-            db.add(scanned_email)
-            db.flush()
-
-            # Get unsubscribe links
-            unsubscribe_links = self._get_unsubscribe_links_from_email(
-                email_msg, email_subject
-            )
-
-            # Add all unsubscribe links to the unsubscribe_links table
-            unsubscribe_link_objs = []
-            for link in unsubscribe_links:
-                unsubscribe_link_objs.append(
-                    UnsubscribeLinks(
-                        link=link,
-                        unsubscribe_status=UnsubscribeStatus.pending,
-                        linked_email_address=self.email,
-                        scanned_email_id=scanned_email.id,
-                    )
-                )
-            db.add_all(unsubscribe_links)
-            db.flush()
+            # Scan the email Message object
+            self._scan_email_message_obj(db, email_msg, self.email)
 
             current_iteration += 1
             # print_progress(
@@ -227,6 +198,54 @@ class EmailUnsubscriber:
         # Close the INBOX
         self.imap.close()
         return current_iteration
+
+    @classmethod
+    def _scan_email_message_obj(
+        cls, db: Session, email_msg: Message, linked_email_address: str
+    ) -> None:
+        """Scan an email message object. Here we get the message sender info such as
+        the email subject and who it's being sent from. Then scan the actual email content
+        for links and if we found some add them to the database.
+        This is a classmethod so that this method can be used for testing.
+
+        Args:
+            db (Session): The db session object.
+            email_message (Message): The email message object.
+            linked_email_address (Str): The email address of the recipient
+        """
+        # Get the email sender and convert from bytes if necessary
+        email_from, email_subject = cls.decode_from_and_subject(
+            email_msg["From"], email_msg["Subject"]
+        )
+
+        # Insert the scanned_email info into the db.
+        scanned_email = ScannedEmails(
+            email_from=email_from,
+            subject=email_subject,
+            linked_email_address=linked_email_address,
+        )
+        db.add(scanned_email)
+        db.flush()
+
+        # Get unsubscribe links
+        unsubscribe_links = cls._get_unsubscribe_links_from_email(
+            email_msg, email_subject
+        )
+
+        # Add all unsubscribe links to the unsubscribe_links table
+        unsubscribe_link_objs = []
+        for link in unsubscribe_links:
+            unsubscribe_link_objs.append(
+                UnsubscribeLinks(
+                    link=link,
+                    unsubscribe_status=UnsubscribeStatus.pending,
+                    linked_email_address=linked_email_address,
+                    scanned_email_id=scanned_email.id,
+                )
+            )
+        db.add_all(unsubscribe_link_objs)
+        db.flush()
+        db.commit()
 
     @staticmethod
     def decode_from_and_subject(
@@ -333,12 +352,10 @@ class EmailUnsubscriber:
 
             if content_type == "text/plain":
                 unsubscribe_links = cls._get_unsubscribe_links_from_text_plain(
-                    body=body, unsubscribe_links=unsubscribe_links
+                    body=body
                 )
             elif content_type == "text/html":
-                unsubscribe_links = cls._get_unsubscribe_links_from_html(
-                    body=body, unsubscribe_links=unsubscribe_links
-                )
+                unsubscribe_links = cls._get_unsubscribe_links_from_html(body=body)
 
         return unsubscribe_links
 

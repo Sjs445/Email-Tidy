@@ -30,3 +30,5 @@ class UnsubscribeLinks(Base):
         String,
         ForeignKey("linked_emails.email", ondelete="CASCADE", onupdate="CASCADE"),
     )
+
+    # TODO: add an insert_ts column for this table and scanned_emails
