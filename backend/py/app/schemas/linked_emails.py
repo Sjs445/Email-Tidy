@@ -2,6 +2,7 @@ from typing import Optional
 
 from pydantic import BaseModel, EmailStr
 
+
 # Shared properties
 class LinkedEmailsBase(BaseModel):
     email: Optional[EmailStr] = None

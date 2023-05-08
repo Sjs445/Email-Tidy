@@ -1,6 +1,7 @@
 import enum
 
-from sqlalchemy import Column, Enum, Integer, ForeignKey, String
+from sqlalchemy import Column, DateTime, Enum, Integer, ForeignKey, String
+from sqlalchemy.sql import func
 
 from app.database.base_class import Base
 
@@ -23,6 +24,7 @@ class UnsubscribeLinks(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     link = Column(String, nullable=False)
     unsubscribe_status = Column(Enum(UnsubscribeStatus), nullable=False)
+    insert_ts = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     scanned_email_id = Column(
         Integer, ForeignKey("scanned_emails.id", ondelete="CASCADE", onupdate="CASCADE")
     )
@@ -30,5 +32,3 @@ class UnsubscribeLinks(Base):
         String,
         ForeignKey("linked_emails.email", ondelete="CASCADE", onupdate="CASCADE"),
     )
-
-    # TODO: add an insert_ts column for this table and scanned_emails

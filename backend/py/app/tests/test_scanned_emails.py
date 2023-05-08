@@ -43,6 +43,8 @@ class TestLinkEmail:
         Routes tested:
             /linked_emails/link_email
         """
+
+        # Add a linked_email account
         linked_email = crud_linked_emails.linked_email.create_with_user(
             self.session,
             obj_in=LinkedEmailsCreate(
@@ -52,24 +54,66 @@ class TestLinkEmail:
             user_id=self.user.id,
         )
 
-        for idx, html_email in enumerate((basic_promo, general_template)):
+        # Generate 20 test spam emails and scan them
+        for i in range(20):
             message = generate_email_message(
                 to_email="email@yahoo.com",
                 from_email="spammer@email.com",
-                subject=f"Spam Email - {idx}",
-                body=html_email,
+                subject=f"Spam Email - {i}",
+                body=general_template,
             )
             EmailUnsubscriber._scan_email_message_obj(
                 db=self.session,
                 email_msg=message,
                 linked_email_address=linked_email.email,
             )
-        scanned_emails = crud_scanned_emails.scanned_emails.get_scanned_emails(
-            db=self.session,
-        )
-        from pprint import pprint
 
-        pprint(scanned_emails)
+        # Fetch the list of scanned_emails for page 0
+        results = self.client.get(
+            "/scanned_emails/scanned_emails/0",
+            headers=self.auth_header,
+        ).json()
+        scanned_emails = results.get("scanned_emails", [])
 
-        # TODO: Test the scanned_emails data
+        expected_scanned_emails_page_0 = [
+            {
+                "email_from": "spammer@email.com",
+                "id": mock.ANY,
+                "link_count": 1,
+                "linked_email_address": "email@yahoo.com",
+                "subject": f"Spam Email - {i}",
+            }
+            for i in range(10)
+        ]
+        assert scanned_emails == expected_scanned_emails_page_0
+
+        # Fetch the list of scanned emails for page 1
+        # it should contain the rest of the scanned emails
+        results = self.client.get(
+            "/scanned_emails/scanned_emails/1?linked_email=email@yahoo.com",
+            headers=self.auth_header,
+        ).json()
+        scanned_emails2 = results.get("scanned_emails", [])
+
+        expected_scanned_emails_page_1 = [
+            {
+                "email_from": "spammer@email.com",
+                "id": mock.ANY,
+                "link_count": 1,
+                "linked_email_address": "email@yahoo.com",
+                "subject": f"Spam Email - {i}",
+            }
+            for i in range(10, 20)
+        ]
+        assert scanned_emails2 == expected_scanned_emails_page_1
+
+        # Fetch the list of scanned emails for page 2
+        # it should not contain anymore emails.
+        results = self.client.get(
+            "/scanned_emails/scanned_emails/2",
+            headers=self.auth_header,
+        ).json()
+        scanned_emails3 = results.get("scanned_emails", [])
+        assert scanned_emails3 == []
+
         # TODO: Add a crud_unsubscribe_links and test retrieval

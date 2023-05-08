@@ -69,6 +69,7 @@ class CRUDScannedEmails(
         *,
         page: int = 0,
         email_from: str = None,
+        linked_email: str = None,
     ) -> List[dict]:
         """Get a paginated list of scanned emails. Optionally filter by a specific email from address.
 
@@ -76,18 +77,31 @@ class CRUDScannedEmails(
             db (Session): The db session
             page (int, optional): The page to fetch. Defaults to 0.
             email_from (str, optional): An email to filter by. Defaults to None.
+            linked_email (str, optional): Filter scanned_emails owned by a linked_email address.
 
         Returns:
             List[dict]: The scanned email data
         """
-        # TODO: TEST paginate data
-        # TODO: TEST optionally filter by "email_from"
         where = ""
         bind = {}
+
+        if page:
+            offset = page * 10
+        else:
+            offset = 0
+
+        # Bind WHERE params for email_from and a linked_email_address
         if email_from is not None and isinstance(email_from, str):
             where += "WHERE scanned_emails.email_from = :email_from"
             bind["email_from"] = email_from
 
+        if bind and linked_email is not None and isinstance(linked_email, str):
+            where += " AND scanned_emails.linked_email_address = :linked_email"
+            bind["linked_email"] = linked_email
+
+        bind["offset"] = offset
+
+        # SQL AUDIT: Parameters are passed using bind. SAFE.
         results = db.execute(
             f"""SELECT scanned_emails.*, COUNT(unsubscribe_links.scanned_email_id) AS link_count
                     FROM scanned_emails
@@ -95,9 +109,9 @@ class CRUDScannedEmails(
                     ON unsubscribe_links.scanned_email_id = scanned_emails.id
                 {where}
                 GROUP BY scanned_emails.id
-                ORDER BY scanned_emails.id -- TODO: change this order by to insert_ts once column is added
+                ORDER BY scanned_emails.insert_ts
                 LIMIT 10
-                OFFSET {page}
+                OFFSET :offset
             """,
             bind,
         ).all()
@@ -107,7 +121,7 @@ class CRUDScannedEmails(
                 "email_from": res[1],
                 "subject": res[2],
                 "linked_email_address": res[3],
-                "link_count": res[4],
+                "link_count": res[5],
             }
             for res in results
         ]
