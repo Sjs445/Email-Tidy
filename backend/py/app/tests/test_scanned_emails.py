@@ -1,7 +1,7 @@
 from fastapi.testclient import TestClient
 from unittest import mock
 
-from app.crud import crud_user, crud_linked_emails, crud_scanned_emails
+from app.crud import crud_user, crud_linked_emails, crud_unsubscribe_links
 from app.main import app
 from app.objects.email_unsubscriber import EmailUnsubscriber
 from app.schemas import LinkedEmailsCreate
@@ -116,4 +116,22 @@ class TestLinkEmail:
         scanned_emails3 = results.get("scanned_emails", [])
         assert scanned_emails3 == []
 
-        # TODO: Add a crud_unsubscribe_links and test retrieval
+        # Fetch a list of unsubscribe links for a certain scanned_email_id and linked_email
+        scanned_email_id = scanned_emails2[0].get("id")
+        results = self.client.get(
+            f"/unsubscribe_links/unsubscribe_links_by_email/{scanned_email_id}/?linked_email=email@yahoo.com",
+            headers=self.auth_header,
+        ).json()
+
+        expected_unsuscribe_links = [
+            {
+                "scanned_email_id": scanned_email_id,
+                "id": mock.ANY,
+                "link": "https://github.com/konsav/email-templates/",
+                "unsubscribe_status": "pending",
+                "insert_ts": mock.ANY,
+                "linked_email_address": "email@yahoo.com",
+            }
+        ]
+
+        assert results.get("links", []) == expected_unsuscribe_links
