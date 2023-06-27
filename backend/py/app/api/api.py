@@ -7,6 +7,7 @@ from app.api.endpoints import (
     scanned_emails,
     unsubscribe_links,
 )
+from app.api.endpoints.general_pages import route_homepage
 
 api_router = APIRouter()
 api_router.include_router(users.router, prefix="/users", tags=["users"])
@@ -19,4 +20,7 @@ api_router.include_router(
 )
 api_router.include_router(
     unsubscribe_links.router, prefix="/unsubscribe_links", tags=["unsubscribe_links"]
+)
+api_router.include_router(
+    route_homepage.router,
 )

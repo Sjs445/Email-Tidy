@@ -1,5 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
+from starlette.responses import RedirectResponse
+from starlette.requests import Request
 from jose import jwt
 from pydantic import ValidationError
 
@@ -9,9 +11,11 @@ from app.database.database import get_db
 from app.config.config import settings
 from app.config.security import ALGORITHM
 from app import crud, models, schemas
+from apis.utils import OAuth2PasswordBearerWithCookie
 
-
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/login/access-token")
+reusable_oauth2 = OAuth2PasswordBearerWithCookie(
+    tokenUrl="/login/access-token", auto_error=False
+)
 
 
 def get_current_user(
@@ -20,12 +24,15 @@ def get_current_user(
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         token_data = schemas.TokenPayload(**payload)
-    except (jwt.JWTError, ValidationError):
+    except:
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Could not validate credentials",
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            headers={"Location": "/login/"},
         )
     user = crud.user.get(db, id=token_data.sub)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_307_TEMPORARY_REDIRECT,
+            headers={"Location": "/login/"},
+        )
     return user
