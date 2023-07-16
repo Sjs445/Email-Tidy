@@ -15,4 +15,4 @@ python /app/initial_data.py
 
 # Start the app
 # NOTE: use --proxy-headers after implementing nginx/traefik container
-uvicorn main:app --host 0.0.0.0 --port 80
+uvicorn main:app --host 0.0.0.0 --port 8000

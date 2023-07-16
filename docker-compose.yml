@@ -7,9 +7,11 @@ services:
       - .env
     image: emailtidy-db
     build:
-      context: ./db
+      context: ./backend/db
     ports:
       - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data:cached
 
   emailtidy-py:
     container_name: emailtidy-py
@@ -19,11 +21,24 @@ services:
     depends_on:
       - emailtidy-db
     build:
-      context: ./py
+      context: ./backend/py
     ports:
-      - 80:80
+      - 8000:8000
     volumes:
       # Bind these volumns for easy development without having to restart the containers. Remove for production.
       - type: bind
-        source: ./py/app
+        source: ./backend/py/app
         target: /app
+  
+  emailtidy-react:
+    container_name: emailtidy-react
+    image: emailtidy-react
+    depends_on:
+      - emailtidy-py
+    build:
+      context: ./frontend
+    ports:
+      - 3000:3000
+
+volumes:
+  db-data:
