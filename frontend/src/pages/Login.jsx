@@ -10,11 +10,11 @@ import Spinner from '../components/Spinner';
 
 function Login() {
     const [formData, setFormData] = useState({
-        email: '',
+        username: '',
         password: '',
     });
 
-    const { email, password } = formData;
+    const { username, password } = formData;
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -44,7 +44,7 @@ function Login() {
         e.preventDefault();
 
         const userData = {
-            email,
+            username,
             password
         }
 
@@ -66,7 +66,7 @@ function Login() {
   <section className='form'>
     <form onSubmit={onSubmit}>
         <div className='form-group'>
-        <input type='text' className='form-control' id='email' name='email' value={email} placeholder='Enter your email' onChange={onChange} />
+        <input type='text' className='form-control' id='email' name='username' value={username} placeholder='Enter your email' onChange={onChange} />
         </div>
         <div className='form-group'>
         <input type='text' className='form-control' id='password' name='password' value={password} placeholder='Enter your password' onChange={onChange} />

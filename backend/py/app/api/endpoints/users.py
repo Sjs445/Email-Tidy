@@ -1,7 +1,11 @@
+from datetime import timedelta
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app import crud, models, schemas
+from app.config import security
+from app.config.config import settings
 from app.database.database import get_db
 
 router = APIRouter()
@@ -28,7 +32,12 @@ def register_user(
             status_code=400, detail="The user with this email already exists"
         )
     user = crud.user.create(db, obj_in=user_in)
-
-    # TODO login the user after registering. Give them a session.
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    
     # TODO send welcome email here
-    return {"id": user.id}
+    return {
+        "access_token": security.create_access_token(
+            user.id, expires_delta=access_token_expires
+        ),
+        "token_type": "bearer",
+    }

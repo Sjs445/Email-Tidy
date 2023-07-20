@@ -39,6 +39,11 @@ services:
       context: ./frontend
     ports:
       - 3000:3000
+    volumes:
+    # Bind these volumns for easy development without having to restart the containers. Remove for production.
+      - type: bind
+        source: ./frontend
+        target: /app
 
 volumes:
   db-data:

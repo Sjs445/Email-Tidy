@@ -1,13 +1,12 @@
 import axios from 'axios';
 
-const API_URL = '/api/users/';
-
 // Register user
 const register = async (userData) => {
-    const response = await axios.post(API_URL, userData);
 
-    if (response.data) {
-        localStorage.setItem('user', JSON.stringify(response.data) );
+    const response = await axios.post('/users/register', userData);
+    
+    if (response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
     }
 
     return response.data;
@@ -15,10 +14,21 @@ const register = async (userData) => {
 
 // Login user
 const login = async (userData) => {
-    const response = await axios.post(API_URL + 'login', userData);
 
-    if (response.data) {
-        localStorage.setItem('user', JSON.stringify(response.data) );
+    // Send the login request as form data. Because OAuth2PasswordRequestForm requires it.
+    const response = await axios.post('/login/access-token', {
+            username: userData.username,
+            password: userData.password,
+        },
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        }
+    );
+
+    if (response.data.access_token) {
+        localStorage.setItem('access_token', response.data.access_token);
     }
 
     return response.data;
@@ -26,7 +36,7 @@ const login = async (userData) => {
 
 // Logout
 const logout = () => {
-    localStorage.removeItem('user');
+    localStorage.removeItem('access_token');
 }
 
 const authService = {

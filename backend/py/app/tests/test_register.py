@@ -37,10 +37,10 @@ class TestRegister:
                 "last_name": "doe",
             },
         ).json()
-        self.user_id = response.get("id")
-        assert self.user_id is not None
-        assert isinstance(self.user_id, int)
+        access_token = response.get("access_token")
+        assert isinstance(access_token, str)
         user = crud_user.user.get_by_email(self.session, email=self.user_email)
+        self.user_id = user.id
         assert user.id == self.user_id
 
     def test_login(self) -> None:
