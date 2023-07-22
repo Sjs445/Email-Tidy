@@ -33,20 +33,21 @@ class TestLinkEmail:
         """Test linking an email to a user account
 
         Routes tested:
-            /linked_emails/link_email
+            /linked_emails/
         """
         response = self.client.post(
-            "/linked_emails/link_email",
+            "/linked_emails/",
             json={
                 "email": "email@yahoo.com",
                 "password": "123abcmnbiou",
             },
             headers=self.auth_header,
         ).json()
-        assert response.get("success")
+        email = response.get("email")
+        assert email == "email@yahoo.com"
 
         linked_email = crud_linked_emails.linked_email.get_by_email(
-            self.session, email="email@yahoo.com"
+            self.session, email=email
         )
         assert decrypt_email_password(linked_email.password) == "123abcmnbiou"
 
@@ -54,12 +55,25 @@ class TestLinkEmail:
         """Test getting a list of currently linked_emails
 
         Routes tested:
-            /linked_emails/linked_emails
+            /linked_emails/
         """
         response = self.client.get(
-            "/linked_emails/linked_emails",
+            "/linked_emails/",
             headers=self.auth_header,
         ).json()
         assert response.get("linked_emails") == [
             {"email": "email@yahoo.com", "id": mock.ANY, "is_active": True}
         ]
+    
+    def test_delete_linked_email(self) -> None:
+        """Test deleting a linked email
+
+        Routes tested:
+            /linked_emails/
+        """
+        linked_email = crud_linked_emails.linked_email.get_by_email(self.session, email="email@yahoo.com")
+        response = self.client.delete(
+            f"/linked_emails/{linked_email.id}",
+            headers=self.auth_header,
+        ).json()
+        assert response.get("id") == linked_email.id

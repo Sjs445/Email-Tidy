@@ -37,13 +37,13 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
             List[dict]: A list of dictionary data about the linked emails
         """
         results = (
-            db.query(LinkedEmails.email, LinkedEmails.id, LinkedEmails.is_active)
+            db.query(LinkedEmails.email, LinkedEmails.id, LinkedEmails.is_active, LinkedEmails.insert_ts)
             .filter(LinkedEmails.user_id == user_id)
             .all()
         )
 
         return [
-            {"email": result[0], "id": result[1], "is_active": result[2]}
+            {"email": result[0], "id": result[1], "is_active": result[2], "insert_ts": result[3]}
             for result in results
         ]
 

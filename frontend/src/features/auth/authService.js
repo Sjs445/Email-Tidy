@@ -9,7 +9,7 @@ const register = async (userData) => {
         localStorage.setItem('access_token', response.data.access_token);
     }
 
-    return response.data;
+    return response.data.access_token;
 }
 
 // Login user
@@ -31,7 +31,7 @@ const login = async (userData) => {
         localStorage.setItem('access_token', response.data.access_token);
     }
 
-    return response.data;
+    return response.data.access_token;
 }
 
 // Logout

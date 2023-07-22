@@ -1,4 +1,5 @@
-from sqlalchemy import Boolean, Column, Integer, String, PrimaryKeyConstraint
+from sqlalchemy import Boolean, Column, Integer, String, PrimaryKeyConstraint, DateTime
+from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 
 from app.database.base_class import Base
@@ -21,4 +22,5 @@ class User(Base):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     linked_emails = relationship("LinkedEmails", passive_deletes=True)
+    insert_ts = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     PrimaryKeyConstraint("id", "email", name="users_pk")

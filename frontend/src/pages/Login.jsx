@@ -69,7 +69,7 @@ function Login() {
         <input type='text' className='form-control' id='email' name='username' value={username} placeholder='Enter your email' onChange={onChange} />
         </div>
         <div className='form-group'>
-        <input type='text' className='form-control' id='password' name='password' value={password} placeholder='Enter your password' onChange={onChange} />
+        <input type='password' className='form-control' id='password' name='password' value={password} placeholder='Enter your password' onChange={onChange} />
         </div>
         <div className="form-group">
             <button type='submit' className='btn btn-block'>

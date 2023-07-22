@@ -8,7 +8,7 @@ from app.database.database import get_db
 router = APIRouter()
 
 
-@router.post("/link_email")
+@router.post("/")
 def link_email(
     *,
     email_info: schemas.LinkedEmailsCreate,
@@ -23,7 +23,7 @@ def link_email(
         user (models.LinkedEmails): The session user.
 
     Returns:
-        dict: The success status of the email link.
+        dict: The email obj
     """
     email = crud.linked_email.get_by_email(db, email=email_info.email)
 
@@ -32,10 +32,10 @@ def link_email(
 
     email = crud.linked_email.create_with_user(db, obj_in=email_info, user_id=user.id)
 
-    return {"success": bool(email)}
+    return {"id": email.id, "email": email.email, "insert_ts": str(email.insert_ts), "is_active": email.is_active}
 
 
-@router.get("/linked_emails")
+@router.get("/")
 def get_linked_emails(
     *,
     db: Session = Depends(get_db),
@@ -51,3 +51,23 @@ def get_linked_emails(
         dict: the linked email info owned by the user
     """
     return {"linked_emails": crud.linked_email.get_by_user_id(db=db, user_id=user.id)}
+
+@router.delete("/{id}")
+def delete_linked_email(
+    *,
+    id: int = None,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Delete a linked email by id.
+
+    Args:
+        id (int): the id of the linked email to delete
+        db (Session): The db session.
+        user (models.User): The session user.
+
+    Returns:
+        dict: the linked email id that was deleted
+    """
+    email = crud.linked_email.remove(db=db, id=id)
+    return {"id": email.id}
