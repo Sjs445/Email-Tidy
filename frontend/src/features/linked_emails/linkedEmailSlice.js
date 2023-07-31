@@ -15,7 +15,7 @@ export const createLinkedEmail = createAsyncThunk('linked_emails/create', async 
         const token = thunkAPI.getState().auth.user;
         return await linkedEmailService.createLinkedEmail(linkedEmailData, token);
     } catch (error) {
-        const message = (error.respose && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -26,7 +26,7 @@ export const getLinkedEmails = createAsyncThunk('linked_emails/getAll', async (_
         const token = thunkAPI.getState().auth.user;
         return await linkedEmailService.getLinkedEmails(token);
     } catch (error) {
-        const message = (error.respose && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -37,7 +37,7 @@ export const deleteLinkedEmail = createAsyncThunk('linked_emails/delete', async 
         const token = thunkAPI.getState().auth.user;
         return await linkedEmailService.deleteLinkedEmail(id, token);
     } catch (error) {
-        const message = (error.respose && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });

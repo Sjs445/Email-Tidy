@@ -22,5 +22,5 @@ class User(Base):
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
     linked_emails = relationship("LinkedEmails", passive_deletes=True)
-    insert_ts = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    insert_ts = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     PrimaryKeyConstraint("id", "email", name="users_pk")

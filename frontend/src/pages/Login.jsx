@@ -43,6 +43,16 @@ function Login() {
     const onSubmit = (e) => {
         e.preventDefault();
 
+        if ( !username ) {
+            toast.error('Email required');
+            return;
+        }
+
+        if ( !password ) {
+            toast.error('Password required');
+            return;
+        }
+
         const userData = {
             username,
             password

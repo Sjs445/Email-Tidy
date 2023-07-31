@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import { UseSelector, useDispatch } from 'react-redux';
+import {toast} from 'react-toastify';
 import {createLinkedEmail} from '../features/linked_emails/linkedEmailSlice';
 
 function LinkedEmailForm() {
@@ -21,6 +22,14 @@ function LinkedEmailForm() {
  
   const onSubmit = e => {
     e.preventDefault();
+
+    if ( !email ) {
+      return toast.error("Email is required");
+    }
+
+    if ( !password ) {
+      return toast.error("Third Party Password is required");
+    }
 
     const linkedEmailData = { email, password };
 

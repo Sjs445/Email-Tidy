@@ -39,10 +39,23 @@ const logout = () => {
     localStorage.removeItem('access_token');
 }
 
+// Test auth token
+const test_token = async (token) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+    const response = await axios.post('/login/test-token', {}, config);
+
+    return response.data;
+}
+
 const authService = {
     register,
     logout,
     login,
+    test_token,
 }
 
 export default authService

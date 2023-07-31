@@ -5,6 +5,7 @@ import LinkedEmailForm from "../components/linkedEmailForm";
 import LinkedEmail from "../components/linkedEmail";
 import Spinner from '../components/Spinner';
 import {getLinkedEmails, reset} from '../features/linked_emails/linkedEmailSlice';
+import { test_token } from "../features/auth/authSlice";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -13,16 +14,24 @@ function Dashboard() {
   const { user } = useSelector( (state) => state.auth );
   const { linked_emails, isLoading, isError, message } = useSelector( (state) => state.email)
 
+  // If there's no user token send them to the login page.
+  // If the token exists verify it's a valid token before fetching for linked emails.
   useEffect( () => {
-    if (isError) {
-      console.log(message);
-    }
-    if(!user) {
+    if (!user) {
       navigate('/login');
+    } else {
+      dispatch(test_token());
     }
+    
+  }, [navigate, dispatch, user])
 
-    dispatch(getLinkedEmails());
-
+  useEffect( () => {
+    // Get a list of linked emails
+    if ( user ) {
+      dispatch(getLinkedEmails());
+    }
+    
+    // When we leave the dashboard clear the linked emails state
     return () => {
       dispatch(reset());
     }
@@ -39,8 +48,6 @@ function Dashboard() {
     <p>Linked Email Dashboard</p>
   </section>
 
-  <LinkedEmailForm />
-
   <section className="content">
     {linked_emails.length > 0 ? (
       <div className="linked_emails" >
@@ -50,6 +57,8 @@ function Dashboard() {
       </div>
     ) : (<h3>You have no linked emails</h3>)}
   </section>
+
+  <LinkedEmailForm />
   </>
   )
 }

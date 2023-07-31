@@ -18,7 +18,7 @@ export const register = createAsyncThunk('auth/register', async (user, thunkAPI)
         return await authService.register(user)
     }
     catch (error) {
-        const message = (error.respose && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 } )
@@ -29,14 +29,31 @@ export const login = createAsyncThunk('auth/login', async (user, thunkAPI) => {
         return await authService.login(user)
     }
     catch (error) {
-        const message = (error.respose && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 } )
 
+
+// Logout user
 export const logout = createAsyncThunk('auth/logout', async () => {
   await authService.logout();
 })
+
+// Test login token
+export const test_token = createAsyncThunk('auth/test_token', async(_, thunkAPI) => {
+  try {
+    const token = thunkAPI.getState().auth.user;
+    return await authService.test_token(token);
+}
+catch (error) {
+    const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
+    console.log(error);
+    localStorage.removeItem('access_token');
+    return thunkAPI.rejectWithValue(message);
+}
+} )
+
 
 export const authSlice = createSlice({
     name: 'auth',
@@ -81,6 +98,19 @@ export const authSlice = createSlice({
           })
           .addCase(logout.fulfilled, (state) => {
             state.user = null;
+          })
+          .addCase(test_token.pending, (state) => {
+            state.isLoading = true;
+          })
+          .addCase(test_token.rejected, (state, action) => {
+            state.isLoading = false;
+            state.isError = true;
+            state.message = action.payload;
+            state.user = null;
+          })
+          .addCase(test_token.fulfilled, (state) => {
+            state.isLoading = false;
+            state.isError = false;
           })
     }
 })
