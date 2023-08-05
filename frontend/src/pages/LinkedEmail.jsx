@@ -4,6 +4,7 @@ import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
 import { getScannedEmails, scanLinkedEmail, reset} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
+import ScannedEmail from "../components/scannedEmail";
 
 
 function LinkedEmail() {
@@ -28,8 +29,8 @@ function LinkedEmail() {
     
   }, [navigate, dispatch, user])
 
-  // We should check that this url is valid. Maybe if the email id is not valid, return them to
-  // the dashboard.
+  // TODO: We should check that this url is valid. Maybe if the email id is not valid or they do not
+  // own the email, return them to the dashboard.
   useEffect( () => {
 
     if ( user ) {
@@ -59,15 +60,23 @@ function LinkedEmail() {
     
     <section className="content">
     {scanned_emails.length > 0 ? (
-      <div>
+      <table>
+        <thead>
+          <tr>
+              <th>From</th>
+              <th>Subject</th>
+              <th>Unsubscribe Links Found</th>
+              <th>Unsubscribe</th>
+            </tr>
+        </thead>
         {scanned_emails.map( (scanned_email) => (
-      <pre>{JSON.stringify(scanned_email)}</pre>
+      <ScannedEmail key={scanned_email.id} scanned_email={scanned_email} />
     ))}
-      </div>
+      </table>
     ) : (
     <h3>No scanned emails found.</h3>
     )}
-    <button className="btn btn-block" onClick={() => dispatch(scanLinkedEmail({linked_email_id: params.id, how_many: 20}))}>Scan 20 Emails for Spam</button>
+    <button className="btn btn-block" onClick={() => dispatch(scanLinkedEmail({linked_email_id: params.id, how_many: 10}))}>Scan 10 Emails for Spam</button>
     </section>
     </>
   )

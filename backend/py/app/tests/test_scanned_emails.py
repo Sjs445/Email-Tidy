@@ -70,14 +70,14 @@ class TestLinkEmail:
 
         # Fetch the list of scanned_emails for page 0
         results = self.client.get(
-            "/scanned_emails/0",
+            "/scanned_emails/0?linked_email=email@yahoo.com",
             headers=self.auth_header,
         ).json()
         scanned_emails = results.get("scanned_emails", [])
 
         expected_scanned_emails_page_0 = [
             {
-                "email_from": "spammer@email.com",
+                "from": "spammer@email.com",
                 "id": mock.ANY,
                 "link_count": 1,
                 "linked_email_address": "email@yahoo.com",
@@ -97,7 +97,7 @@ class TestLinkEmail:
 
         expected_scanned_emails_page_1 = [
             {
-                "email_from": "spammer@email.com",
+                "from": "spammer@email.com",
                 "id": mock.ANY,
                 "link_count": 1,
                 "linked_email_address": "email@yahoo.com",
@@ -135,16 +135,3 @@ class TestLinkEmail:
         ]
 
         assert results.get("links", []) == expected_unsuscribe_links
-
-    def test_my_own(self):
-
-        results = self.client.post(
-            "/scanned_emails/",
-            json={
-                "linked_email_id": 3,
-                "how_many": 20,
-            },
-            headers=generate_auth_header(2),
-        )
-        breakpoint()
-        print('stop')

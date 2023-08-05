@@ -27,7 +27,7 @@ def scan_emails(
         dict: Number of emails scanned.
     """
     return {
-        "scanned": crud.scanned_emails.scan_emails(
+        "scanned_emails": crud.scanned_emails.scan_emails(
             db, obj_in=scan_email, user_id=user.id
         )
     }
@@ -36,9 +36,9 @@ def scan_emails(
 @router.get("/{page}")
 def get_scanned_emails(
     *,
+    linked_email: str,
     page: int = 0,
     email_from: str = None,
-    linked_email: str = None,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
@@ -47,7 +47,7 @@ def get_scanned_emails(
     Args:
         page (int, optional): The page to fetch. Defaults to 0.
         email_from (str, optional): Filter scanned_emails by a specific from address.
-        linked_email (str, optional): Filter scanned_emails owned by a linked_email address.
+        linked_email (str): Filter scanned_emails owned by a linked_email address.
         db (Session): The db session.
         user (models.User): The session user.
 
@@ -58,6 +58,7 @@ def get_scanned_emails(
         "scanned_emails": crud.scanned_emails.get_scanned_emails(
             db,
             page=page,
+            user_id=user.id,
             email_from=email_from,
             linked_email=linked_email,
         )

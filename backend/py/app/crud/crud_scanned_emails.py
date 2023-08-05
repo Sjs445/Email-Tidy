@@ -67,21 +67,40 @@ class CRUDScannedEmails(
         self,
         db: Session,
         *,
+        user_id: int,
+        linked_email: str,
         page: int = 0,
         email_from: str = None,
-        linked_email: str = None,
+        
     ) -> List[dict]:
         """Get a paginated list of scanned emails. Optionally filter by a specific email from address.
 
         Args:
             db (Session): The db session
+            user_id (int): The session user_id
+            linked_email (str): Filter scanned_emails owned by a linked_email address.
             page (int, optional): The page to fetch. Defaults to 0.
             email_from (str, optional): An email to filter by. Defaults to None.
-            linked_email (str, optional): Filter scanned_emails owned by a linked_email address.
 
         Returns:
             List[dict]: The scanned email data
         """
+
+        # Verify this email belongs to the session user
+        linked_email = (
+            db.query(LinkedEmails)
+            .filter(
+                LinkedEmails.email == linked_email,
+                LinkedEmails.user_id == user_id,
+            )
+            .first()
+        )
+        if not linked_email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Could not find linked email",
+            )
+
         where = ""
         bind = {}
 
@@ -91,13 +110,14 @@ class CRUDScannedEmails(
             offset = 0
 
         # Bind WHERE params for email_from and a linked_email_address
-        if email_from is not None and isinstance(email_from, str):
-            where += "WHERE scanned_emails.email_from = :email_from"
-            bind["email_from"] = email_from
+        where += "WHERE scanned_emails.linked_email_address = :linked_email"
+        where += " AND users.id = :user_id"
+        bind["linked_email"] = linked_email
+        bind["user_id"] = user_id
 
-        if bind and linked_email is not None and isinstance(linked_email, str):
-            where += " AND scanned_emails.linked_email_address = :linked_email"
-            bind["linked_email"] = linked_email
+        if email_from is not None and isinstance(email_from, str):
+            where += " AND scanned_emails.email_from = :email_from"
+            bind["email_from"] = email_from
 
         bind["offset"] = offset
 
@@ -107,6 +127,10 @@ class CRUDScannedEmails(
                     FROM scanned_emails
                 LEFT OUTER JOIN unsubscribe_links
                     ON unsubscribe_links.scanned_email_id = scanned_emails.id
+                INNER JOIN linked_emails
+                    ON linked_emails.email = scanned_emails.linked_email_address
+                INNER JOIN users
+                    ON users.id = linked_emails.user_id
                 {where}
                 GROUP BY scanned_emails.id
                 ORDER BY scanned_emails.insert_ts
@@ -118,7 +142,7 @@ class CRUDScannedEmails(
         return [
             {
                 "id": res[0],
-                "email_from": res[1],
+                "from": res[1],
                 "subject": res[2],
                 "linked_email_address": res[3],
                 "link_count": res[5],

@@ -12,7 +12,7 @@ const scanLinkedEmail = async ( scanEmailData, token ) => {
 
     const response = await axios.post(API_URL, scanEmailData, config);
 
-    return response.data;
+    return response.data.scanned_emails;
 }
 
 // Get a list of scanned emails for a linked email
@@ -32,7 +32,7 @@ const getScannedEmails = async ( getScannedEmailData, token ) => {
 
     const response = await axios.get(url, config);
 
-    return response.data;
+    return response.data.scanned_emails;
 }
 
 const scannedEmailService = {

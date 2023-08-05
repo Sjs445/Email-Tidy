@@ -116,7 +116,7 @@ class EmailUnsubscriber:
 
     def get_unsubscribe_links_from_inbox(
         self, db: Session, how_many: int = None, order_by: str = "desc"
-    ) -> int:
+    ) -> List[dict]:
         """Iterate through the Inbox looking through the email body for
         words in `self.UNSUBSCRIBE_KEYWORDS`.
         If one of the keywords is found in the email body we look for a
@@ -130,7 +130,16 @@ class EmailUnsubscriber:
                 Defaults to 'desc'.
 
         Returns:
-            int: the number of emails scanned
+            List[dict]: A list of data describing the emails scanned in this format.
+                [
+                    {
+                        "id": 52,
+                        "from": "sender@spam.mail.com",
+                        "subject": "subject of email",
+                        "link_count": 3
+                    },
+                    ...
+                ]
         """
         status, messages = self.imap.select("INBOX")
         if status != "OK":
@@ -175,7 +184,7 @@ class EmailUnsubscriber:
         #     prefix="Progress:",
         #     suffix="Complete",
         # )
-        breakpoint()
+        scanned_emails = []
         for i in range(*range_params):
             response, msg = self.imap.fetch(str(i), "(RFC822)")
 
@@ -186,7 +195,7 @@ class EmailUnsubscriber:
             email_msg = email.message_from_bytes(msg[0][1])
 
             # Scan the email Message object
-            self._scan_email_message_obj(db, email_msg, self.email)
+            scanned_emails.append(self._scan_email_message_obj(db, email_msg, self.email))
 
             current_iteration += 1
             # print_progress(
@@ -198,12 +207,12 @@ class EmailUnsubscriber:
 
         # Close the INBOX
         self.imap.close()
-        return current_iteration
+        return scanned_emails
 
     @classmethod
     def _scan_email_message_obj(
         cls, db: Session, email_msg: Message, linked_email_address: str
-    ) -> None:
+    ) -> dict:
         """Scan an email message object. Here we get the message sender info such as
         the email subject and who it's being sent from. Then scan the actual email content
         for links and if we found some add them to the database.
@@ -213,6 +222,15 @@ class EmailUnsubscriber:
             db (Session): The db session object.
             email_message (Message): The email message object.
             linked_email_address (Str): The email address of the recipient
+
+        Returns:
+            dict: The id, email_from, subject and unsubscribe link count
+                {
+                    "id": 52,
+                    "from": "sender@spam.mail.com",
+                    "subject": "subject of email",
+                    "link_count": 3
+                },
         """
         # Get the email sender and convert from bytes if necessary
         email_from, email_subject = cls.decode_from_and_subject(
@@ -247,6 +265,12 @@ class EmailUnsubscriber:
         db.add_all(unsubscribe_link_objs)
         db.flush()
         db.commit()
+        return {
+            "id": scanned_email.id,
+            "from": email_from,
+            "subject": email_subject,
+            "link_count": len(unsubscribe_link_objs),
+        }
 
     @staticmethod
     def decode_from_and_subject(

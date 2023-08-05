@@ -45,7 +45,7 @@ export const scannedEmailSlice = createSlice({
          .addCase(scanLinkedEmail.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails.push(action.payload)
+            state.scanned_emails = action.payload
          })
          .addCase(scanLinkedEmail.rejected, (state, action) => {
             state.isLoading = false
@@ -58,7 +58,7 @@ export const scannedEmailSlice = createSlice({
         .addCase(getScannedEmails.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.linked_emails = action.payload
+            state.scanned_emails = action.payload
         })
         .addCase(getScannedEmails.rejected, (state, action) => {
             state.isLoading = false
