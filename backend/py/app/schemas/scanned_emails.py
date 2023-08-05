@@ -4,8 +4,8 @@ from pydantic import BaseModel, EmailStr
 
 
 class ScanEmails(BaseModel):
-    linked_email_address = EmailStr
-    how_many: Optional[int] = None
+    linked_email_id: int
+    how_many: Optional[int] = 20
     order_by: Optional[str] = "desc"
 
 

@@ -34,7 +34,7 @@ class CRUDScannedEmails(
         linked_email = (
             db.query(LinkedEmails)
             .filter(
-                LinkedEmails.email == obj_in.linked_email_address,
+                LinkedEmails.id == obj_in.linked_email_id,
                 LinkedEmails.user_id == user_id,
             )
             .first()
@@ -42,11 +42,11 @@ class CRUDScannedEmails(
         if not linked_email:
             raise HTTPException(
                 status_code=400,
-                detail=f"Could not find linked email for email '{obj_in.linked_email_address}'",
+                detail=f"Could not find linked email",
             )
 
         domain = EmailUnsubscriber.get_domain_from_email(
-            email_address=obj_in.linked_email_address
+            email_address=linked_email.email
         )
         email_unsubscriber = EmailUnsubscriber(email_type=domain)
 
@@ -59,7 +59,7 @@ class CRUDScannedEmails(
                 status_code=400,
                 detail=f"Could not login for linked email '{linked_email.email}'",
             )
-        scanned = email_unsubscriber.get_unsubscribe_links_from_inbox(db)
+        scanned = email_unsubscriber.get_unsubscribe_links_from_inbox(db, how_many=obj_in.how_many)
         del email_unsubscriber
         return scanned
 

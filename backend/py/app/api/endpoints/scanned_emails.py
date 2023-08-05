@@ -8,7 +8,7 @@ from app.database.database import get_db
 router = APIRouter()
 
 
-@router.post("/scan_emails")
+@router.post("/")
 def scan_emails(
     *,
     scan_email: schemas.ScanEmails,
@@ -33,7 +33,7 @@ def scan_emails(
     }
 
 
-@router.get("/scanned_emails/{page}")
+@router.get("/{page}")
 def get_scanned_emails(
     *,
     page: int = 0,

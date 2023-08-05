@@ -32,6 +32,5 @@ def get_unsubscribe_links_by_email(
             db,
             linked_email_address=linked_email,
             scanned_email_id=scanned_email_id,
-            user_id=user.id,
         )
     }

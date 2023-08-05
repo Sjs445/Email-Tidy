@@ -70,7 +70,7 @@ class TestLinkEmail:
 
         # Fetch the list of scanned_emails for page 0
         results = self.client.get(
-            "/scanned_emails/scanned_emails/0",
+            "/scanned_emails/0",
             headers=self.auth_header,
         ).json()
         scanned_emails = results.get("scanned_emails", [])
@@ -90,7 +90,7 @@ class TestLinkEmail:
         # Fetch the list of scanned emails for page 1
         # it should contain the rest of the scanned emails
         results = self.client.get(
-            "/scanned_emails/scanned_emails/1?linked_email=email@yahoo.com",
+            "/scanned_emails/1?linked_email=email@yahoo.com",
             headers=self.auth_header,
         ).json()
         scanned_emails2 = results.get("scanned_emails", [])
@@ -110,7 +110,7 @@ class TestLinkEmail:
         # Fetch the list of scanned emails for page 2
         # it should not contain anymore emails.
         results = self.client.get(
-            "/scanned_emails/scanned_emails/2",
+            "/scanned_emails/2",
             headers=self.auth_header,
         ).json()
         scanned_emails3 = results.get("scanned_emails", [])
@@ -135,3 +135,16 @@ class TestLinkEmail:
         ]
 
         assert results.get("links", []) == expected_unsuscribe_links
+
+    def test_my_own(self):
+
+        results = self.client.post(
+            "/scanned_emails/",
+            json={
+                "linked_email_id": 3,
+                "how_many": 20,
+            },
+            headers=generate_auth_header(2),
+        )
+        breakpoint()
+        print('stop')

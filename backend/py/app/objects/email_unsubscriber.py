@@ -175,6 +175,7 @@ class EmailUnsubscriber:
         #     prefix="Progress:",
         #     suffix="Complete",
         # )
+        breakpoint()
         for i in range(*range_params):
             response, msg = self.imap.fetch(str(i), "(RFC822)")
 

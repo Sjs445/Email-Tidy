@@ -33,6 +33,7 @@ class CRUDUnsubscribeLinks(
             list: The list of unsubscribe links found.
         """
 
+        # TODO: Make sure this query joins with a user_id.
         links = (
             db.query(UnsubscribeLinks)
             .filter(
