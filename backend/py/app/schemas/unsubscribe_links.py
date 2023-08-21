@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr
 
@@ -18,6 +18,9 @@ class UnsubscribeEmailsCreate(BaseModel):
     unsubscribe_status: str
     insert_ts: str
 
+class UnsubscribeEmail(BaseModel):
+    scanned_email_ids: List[int]
+    linked_email_address: EmailStr
 
 # Placeholder
 class UnsubscribeEmailUpdate(BaseModel):

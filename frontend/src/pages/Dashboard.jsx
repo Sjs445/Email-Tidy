@@ -11,7 +11,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user } = useSelector( (state) => state.auth );
+  const { user, isSuccess } = useSelector( (state) => state.auth );
   const { linked_emails, isLoading, isError, message } = useSelector( (state) => state.email)
 
   // If there's no user token send them to the login page.
@@ -20,22 +20,19 @@ function Dashboard() {
     if (!user) {
       navigate('/login');
     } else {
-      dispatch(test_token());
+      dispatch(test_token())
+        .then( () => {
+          dispatch(getLinkedEmails());
+        })
+        .catch( (error) => {
+          console.log(error)
+        })
     }
     
-  }, [navigate, dispatch, user])
-
-  useEffect( () => {
-    // Get a list of linked emails
-    if ( user ) {
-      dispatch(getLinkedEmails());
-    }
-    
-    // When we leave the dashboard clear the linked emails state
     return () => {
       dispatch(reset());
     }
-  }, [user, navigate, isError, message, dispatch])
+  }, [navigate, dispatch, user, isError, message]);
 
   if ( isLoading ) {
     return <Spinner />

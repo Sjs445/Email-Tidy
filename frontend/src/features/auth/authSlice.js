@@ -48,7 +48,6 @@ export const test_token = createAsyncThunk('auth/test_token', async(_, thunkAPI)
 }
 catch (error) {
     const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
-    console.log(error);
     localStorage.removeItem('access_token');
     return thunkAPI.rejectWithValue(message);
 }

@@ -82,6 +82,7 @@ class TestLinkEmail:
                 "link_count": 1,
                 "linked_email_address": "email@yahoo.com",
                 "subject": f"Spam Email - {i}",
+                "unsubscribe_status": "pending",
             }
             for i in range(10)
         ]
@@ -102,6 +103,7 @@ class TestLinkEmail:
                 "link_count": 1,
                 "linked_email_address": "email@yahoo.com",
                 "subject": f"Spam Email - {i}",
+                "unsubscribe_status": "pending",
             }
             for i in range(10, 20)
         ]

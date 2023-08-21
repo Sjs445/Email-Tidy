@@ -112,7 +112,7 @@ class CRUDScannedEmails(
         # Bind WHERE params for email_from and a linked_email_address
         where += "WHERE scanned_emails.linked_email_address = :linked_email"
         where += " AND users.id = :user_id"
-        bind["linked_email"] = linked_email
+        bind["linked_email"] = linked_email.email
         bind["user_id"] = user_id
 
         if email_from is not None and isinstance(email_from, str):
@@ -123,7 +123,7 @@ class CRUDScannedEmails(
 
         # SQL AUDIT: Parameters are passed using bind. SAFE.
         results = db.execute(
-            f"""SELECT scanned_emails.*, COUNT(unsubscribe_links.scanned_email_id) AS link_count
+            f"""SELECT scanned_emails.*, COUNT(unsubscribe_links.scanned_email_id) AS link_count, unsubscribe_links.unsubscribe_status
                     FROM scanned_emails
                 LEFT OUTER JOIN unsubscribe_links
                     ON unsubscribe_links.scanned_email_id = scanned_emails.id
@@ -132,8 +132,7 @@ class CRUDScannedEmails(
                 INNER JOIN users
                     ON users.id = linked_emails.user_id
                 {where}
-                GROUP BY scanned_emails.id
-                ORDER BY scanned_emails.insert_ts
+                GROUP BY scanned_emails.id, scanned_emails.insert_ts, unsubscribe_links.unsubscribe_status
                 LIMIT 10
                 OFFSET :offset
             """,
@@ -146,9 +145,53 @@ class CRUDScannedEmails(
                 "subject": res[2],
                 "linked_email_address": res[3],
                 "link_count": res[5],
+                "unsubscribe_status": res[6],
             }
             for res in results
         ]
+
+    def count_scanned_emails(
+        self,
+        db: Session,
+        *,
+        user_id: int,
+        linked_email: str,       
+    ) -> int:
+        """Count the number of scanned emails for this linked email.
+
+        Args:
+            db (Session): The db session.
+            user_id (int): The user_id.
+            linked_email (str): The linked email address.
+
+        Returns:
+            int: The number of scanned emails.
+        """
+        # Verify this email belongs to the session user
+        linked_email_obj = (
+            db.query(LinkedEmails)
+            .filter(
+                LinkedEmails.email == linked_email,
+                LinkedEmails.user_id == user_id,
+            )
+            .first()
+        )
+        if not linked_email:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Could not find linked email",
+            )
+        
+        count = (
+            db.query(ScannedEmails)
+            .filter(
+                ScannedEmails.linked_email_address == linked_email_obj.email
+            )
+            .count()
+        ) or 0
+
+        return count
+
 
 
 scanned_emails = CRUDScannedEmails(ScannedEmails)
