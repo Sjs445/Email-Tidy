@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, scanLinkedEmail, reset} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
+import {toast} from 'react-toastify';
 
 function LinkedEmail() {
 
@@ -20,6 +21,32 @@ function LinkedEmail() {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [scannedEmailCount, setScannedEmailCount] = useState(0);
+
+  const [formData, setFormData ] = useState([]);
+
+  const onChange = (e) => {
+    if ( e.target.checked ) {
+      formData.push(e.target.value);
+    } else {
+      setFormData(formData.filter( (scanned_id) => scanned_id !== e.target.value))
+    }
+  };
+
+const onSubmit = e => {
+  e.preventDefault();
+
+  if ( formData.length == 0 ) {
+    return toast.error("No emails selected");
+  }
+
+  const unsubscribeData = {
+    linked_email_address: linked_email,
+    scanned_email_ids: formData,
+    page: currentPage,
+  }
+
+  dispatch(unsubscribeFromLinks(unsubscribeData));
+  };
 
   
   // If there's no user token send them to the login page.
@@ -42,10 +69,7 @@ function LinkedEmail() {
         .then( () => {
 
           fetch_count();
-          console.log("scanned email count " + scannedEmailCount)
-          console.log("current page" + currentPage)
-
-          
+ 
           const getScannedEmailData = {
             page: currentPage,
             linked_email: linked_email
@@ -65,7 +89,11 @@ function LinkedEmail() {
   }, [navigate, dispatch, user, currentPage])
 
   // Paginate the data table
-  const paginate = currentPage => setCurrentPage(currentPage);
+  const paginate = (currentPage) => {
+    setCurrentPage(currentPage);
+    setFormData([]);
+  }
+  const seenCount = 10 * ( currentPage + 1 );
 
   // TODO: We should check that this url is valid. Maybe if the email id is not valid or they do not
   // own the email, return them to the dashboard.
@@ -83,7 +111,7 @@ function LinkedEmail() {
     
     <section>
     {scanned_emails.length > 0 ? (
-      <form>
+      <form onSubmit={onSubmit}>
       <table>
         <thead>
           <tr>
@@ -103,7 +131,12 @@ function LinkedEmail() {
             {scanned_email.link_count > 0 ? (
               scanned_email.unsubscribe_status === 'pending' ? 
                 <div>
-                <input type="checkbox" id={scanned_email.id} name={scanned_email.id} value={scanned_email.id} />
+                <input
+                 type="checkbox"
+                 id={scanned_email.id}
+                 name={scanned_email.id}
+                 value={scanned_email.id}
+                 onChange={onChange} />
                 <label htmlFor={scanned_email.id}>Unsubscribe</label>
                 </div>
                 : <p>{scanned_email.unsubscribe_status}</p>
@@ -113,10 +146,15 @@ function LinkedEmail() {
     ))}
     </tbody>
     </table>
+
+    {/* TODO: Add number links to go directly to a page */}
+
+    {/* Don't allow someone to go to the previous page if we're on page 0*/}
     {currentPage === 0 ? <button className='btn' disabled>Prev Page</button> : <button className='btn'  onClick={ () => paginate(currentPage-1)}>Prev Page</button> }
 
-    {/* TODO: Fetch a count of scanned emails and disable the next page button on max page */}
-    <button className='btn' onClick={ () => paginate(currentPage+1)}>Next Page</button>
+    {/* Don't allow someone to go to the next page if we're at the max count of emails */}
+    { seenCount < scannedEmailCount  ? <button className='btn' onClick={ () => paginate(currentPage+1)}>Next Page</button> : <button className='btn' disabled>Next Page</button>  }
+    
     <button type="submit" className='btn btn-block'>Unsubscribe</button>
     </form>
     ) : (

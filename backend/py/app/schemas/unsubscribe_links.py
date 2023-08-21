@@ -21,6 +21,7 @@ class UnsubscribeEmailsCreate(BaseModel):
 class UnsubscribeEmail(BaseModel):
     scanned_email_ids: List[int]
     linked_email_address: EmailStr
+    page: int = 0
 
 # Placeholder
 class UnsubscribeEmailUpdate(BaseModel):

@@ -31,6 +31,17 @@ export const getScannedEmails = createAsyncThunk('scanned_emails/get', async( ge
     }
 });
 
+// Unsubscribe from links
+export const unsubscribeFromLinks = createAsyncThunk('scanned_emails/unsubscribe', async(unsubscribeData, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+        return await scannedEmailService.unsubscribeFromLinks(unsubscribeData, token);
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
 export const scannedEmailSlice = createSlice({
     name: 'scanned_email',
     initialState,
@@ -61,6 +72,19 @@ export const scannedEmailSlice = createSlice({
             state.scanned_emails = action.payload
         })
         .addCase(getScannedEmails.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(unsubscribeFromLinks.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(unsubscribeFromLinks.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.scanned_emails = action.payload
+        })
+        .addCase(unsubscribeFromLinks.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

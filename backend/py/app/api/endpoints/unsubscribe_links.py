@@ -55,10 +55,11 @@ def unsubscribe(
         dict: The modified unsubscribe links
     """
     return {
-        "success": crud.unsubscribe_links.unsubscribe(
+        "scanned_emails": crud.unsubscribe_links.unsubscribe(
         db,
-        scanned_email_id=unsub_info.scanned_email_ids,
+        scanned_email_ids=unsub_info.scanned_email_ids,
         linked_email=unsub_info.linked_email_address,
-        user_id=user.id
+        user_id=user.id,
+        page=unsub_info.page
         )
     }

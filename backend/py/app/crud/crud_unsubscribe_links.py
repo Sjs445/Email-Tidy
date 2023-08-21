@@ -5,6 +5,7 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from app import crud
 from app.crud.base import CRUDBase
 from app.models.linked_emails import LinkedEmails
 from app.models.unsubscribe_links import UnsubscribeLinks, UnsubscribeStatus
@@ -72,6 +73,7 @@ class CRUDUnsubscribeLinks(
             scanned_email_ids: List[int],
             linked_email: str,
             user_id: int,
+            page: int,
     ) -> list:
         """Unsubscribe from a scanned email
 
@@ -80,6 +82,7 @@ class CRUDUnsubscribeLinks(
             scanned_email_ids (List[int]): The scanned email ids to unsubscribe from
             linked_email (str): The linked email address
             user_id (int): The session user id
+            page (int): The page we're on. Helps the front-end update scanned email data.
 
         Returns:
             list: The updated unsubscribe links
@@ -103,7 +106,7 @@ class CRUDUnsubscribeLinks(
         links = (
             db.query(UnsubscribeLinks)
             .filter(
-                UnsubscribeLinks.linked_email_address == linked_email,
+                UnsubscribeLinks.linked_email_address == linked_email.email,
                 UnsubscribeLinks.scanned_email_id.in_(scanned_email_ids),
             )
             .all()
@@ -111,7 +114,7 @@ class CRUDUnsubscribeLinks(
 
         for link in links:
             
-            res = requests.get(link)
+            res = requests.get(link.link)
 
             # TODO: Do something with the res.text. We could possibly parse it
             # to see if there is another 'click' needed to unsubscribe.
@@ -122,7 +125,13 @@ class CRUDUnsubscribeLinks(
         
         db.commit()
 
-        return links
+        # Fetch the list of scanned emails for the front-end to update data
+        return crud.scanned_emails.get_scanned_emails(
+            db,
+            user_id=user_id,
+            linked_email=linked_email.email,
+            page=page,
+        )
 
 
 

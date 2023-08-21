@@ -35,9 +35,23 @@ const getScannedEmails = async ( getScannedEmailData, token ) => {
     return response.data.scanned_emails;
 }
 
+// Unsubscribe from links
+const unsubscribeFromLinks = async ( unsubscribeData, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.post("/unsubscribe_links/", unsubscribeData, config);
+
+    return response.data.scanned_emails;
+}
+
 const scannedEmailService = {
     scanLinkedEmail,
     getScannedEmails,
+    unsubscribeFromLinks,
 }
 
 export default scannedEmailService
