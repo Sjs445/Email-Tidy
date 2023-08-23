@@ -32,7 +32,12 @@ def link_email(
 
     email = crud.linked_email.create_with_user(db, obj_in=email_info, user_id=user.id)
 
-    return {"id": email.id, "email": email.email, "insert_ts": str(email.insert_ts), "is_active": email.is_active}
+    return {
+        "id": email.id,
+        "email": email.email,
+        "insert_ts": str(email.insert_ts),
+        "is_active": email.is_active,
+    }
 
 
 @router.get("/")
@@ -51,6 +56,7 @@ def get_linked_emails(
         dict: the linked email info owned by the user
     """
     return {"linked_emails": crud.linked_email.get_by_user_id(db=db, user_id=user.id)}
+
 
 @router.delete("/{id}")
 def delete_linked_email(

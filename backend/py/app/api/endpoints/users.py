@@ -33,7 +33,7 @@ def register_user(
         )
     user = crud.user.create(db, obj_in=user_in)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
+
     # TODO send welcome email here
     return {
         "access_token": security.create_access_token(

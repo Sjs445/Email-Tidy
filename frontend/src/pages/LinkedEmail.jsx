@@ -53,13 +53,19 @@ const onSubmit = e => {
   // If the token exists verify it's a valid token before fetching for linked emails.
   useEffect( () => {
     const fetch_count = async () => {
-      const res = await axios.get(`/scanned_emails/count/${linked_email}`,
+      try {
+        const res = await axios.get(`/scanned_emails/count/${linked_email}`,
       { headers: {
         Authorization: `Bearer ${user}`
         }
       },
     )
     setScannedEmailCount(res.data.count)
+      } catch (error) {
+        toast.error('Failed to fetch scanned emails')
+        navigate("/")
+      }
+      
     };
 
     if (!user) {
@@ -94,9 +100,6 @@ const onSubmit = e => {
     setFormData([]);
   }
   const seenCount = 10 * ( currentPage + 1 );
-
-  // TODO: We should check that this url is valid. Maybe if the email id is not valid or they do not
-  // own the email, return them to the dashboard.
 
   if ( isLoading ) {
     return <Spinner />

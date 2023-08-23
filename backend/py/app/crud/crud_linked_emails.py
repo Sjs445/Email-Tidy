@@ -37,15 +37,53 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
             List[dict]: A list of dictionary data about the linked emails
         """
         results = (
-            db.query(LinkedEmails.email, LinkedEmails.id, LinkedEmails.is_active, LinkedEmails.insert_ts)
+            db.query(
+                LinkedEmails.email,
+                LinkedEmails.id,
+                LinkedEmails.is_active,
+                LinkedEmails.insert_ts,
+            )
             .filter(LinkedEmails.user_id == user_id)
             .all()
         )
 
         return [
-            {"email": result[0], "id": result[1], "is_active": result[2], "insert_ts": result[3]}
+            {
+                "email": result[0],
+                "id": result[1],
+                "is_active": result[2],
+                "insert_ts": result[3],
+            }
             for result in results
         ]
+
+    def get_single_by_user_id(
+        self, db: Session, *, user_id: int, linked_email_address: str
+    ) -> LinkedEmails:
+        """Get a linked email by user id and a specified linked email.
+        This method is used to check whether the linked email is owned by the user_id.
+
+        Args:
+            db (Session): The db session
+            user_id (int): The session user_id
+            linked_email_address (str): The linked_email to check
+
+        Returns:
+            LinkedEmails: The possible linked email object
+        """
+        linked_email = (
+            db.query(LinkedEmails)
+            .filter(
+                LinkedEmails.email == linked_email_address,
+                LinkedEmails.user_id == user_id,
+            )
+            .first()
+        )
+
+        if not linked_email:
+            raise HTTPException(status_code=400, detail=f"Could not find linked email")
+
+        return linked_email
 
     def create_with_user(
         self, db: Session, *, obj_in: LinkedEmailsCreate, user_id: int

@@ -195,7 +195,9 @@ class EmailUnsubscriber:
             email_msg = email.message_from_bytes(msg[0][1])
 
             # Scan the email Message object
-            scanned_emails.append(self._scan_email_message_obj(db, email_msg, self.email))
+            scanned_emails.append(
+                self._scan_email_message_obj(db, email_msg, self.email)
+            )
 
             current_iteration += 1
             # print_progress(

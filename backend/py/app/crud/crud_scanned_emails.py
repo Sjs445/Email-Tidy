@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
+from app import crud
 from app.models.scanned_emails import ScannedEmails
 from app.models.linked_emails import LinkedEmails
 from app.objects.email_unsubscriber import EmailUnsubscriber
@@ -59,7 +60,9 @@ class CRUDScannedEmails(
                 status_code=400,
                 detail=f"Could not login for linked email '{linked_email.email}'",
             )
-        scanned = email_unsubscriber.get_unsubscribe_links_from_inbox(db, how_many=obj_in.how_many)
+        scanned = email_unsubscriber.get_unsubscribe_links_from_inbox(
+            db, how_many=obj_in.how_many
+        )
         del email_unsubscriber
         return scanned
 
@@ -71,7 +74,6 @@ class CRUDScannedEmails(
         linked_email: str,
         page: int = 0,
         email_from: str = None,
-        
     ) -> List[dict]:
         """Get a paginated list of scanned emails. Optionally filter by a specific email from address.
 
@@ -85,21 +87,9 @@ class CRUDScannedEmails(
         Returns:
             List[dict]: The scanned email data
         """
-
-        # Verify this email belongs to the session user
-        linked_email = (
-            db.query(LinkedEmails)
-            .filter(
-                LinkedEmails.email == linked_email,
-                LinkedEmails.user_id == user_id,
-            )
-            .first()
+        linked_email = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email
         )
-        if not linked_email:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Could not find linked email",
-            )
 
         where = ""
         bind = {}
@@ -155,7 +145,7 @@ class CRUDScannedEmails(
         db: Session,
         *,
         user_id: int,
-        linked_email: str,       
+        linked_email: str,
     ) -> int:
         """Count the number of scanned emails for this linked email.
 
@@ -167,31 +157,17 @@ class CRUDScannedEmails(
         Returns:
             int: The number of scanned emails.
         """
-        # Verify this email belongs to the session user
-        linked_email_obj = (
-            db.query(LinkedEmails)
-            .filter(
-                LinkedEmails.email == linked_email,
-                LinkedEmails.user_id == user_id,
-            )
-            .first()
+        linked_email_obj = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email
         )
-        if not linked_email:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Could not find linked email",
-            )
-        
+
         count = (
             db.query(ScannedEmails)
-            .filter(
-                ScannedEmails.linked_email_address == linked_email_obj.email
-            )
+            .filter(ScannedEmails.linked_email_address == linked_email_obj.email)
             .count()
         ) or 0
 
         return count
-
 
 
 scanned_emails = CRUDScannedEmails(ScannedEmails)

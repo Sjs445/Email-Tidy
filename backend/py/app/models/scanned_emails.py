@@ -15,7 +15,9 @@ class ScannedEmails(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     email_from = Column(String, nullable=False)
     subject = Column(String)
-    insert_ts = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    insert_ts = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     linked_email_address = Column(
         String,
         ForeignKey("linked_emails.email", ondelete="CASCADE", onupdate="CASCADE"),

@@ -1,4 +1,12 @@
-from sqlalchemy import Boolean, Column, Integer, ForeignKey, String, LargeBinary, DateTime
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Integer,
+    ForeignKey,
+    String,
+    LargeBinary,
+    DateTime,
+)
 from sqlalchemy.sql import func
 
 from app.database.base_class import Base
@@ -14,7 +22,9 @@ class LinkedEmails(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(LargeBinary, nullable=False)
     is_active = Column(Boolean, default=True)
-    insert_ts = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    insert_ts = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     user_id = Column(
         Integer,
         ForeignKey("users.id", ondelete="CASCADE", onupdate="CASCADE"),

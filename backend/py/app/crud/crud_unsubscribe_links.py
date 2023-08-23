@@ -39,41 +39,30 @@ class CRUDUnsubscribeLinks(
             list: The list of unsubscribe links objects.
         """
 
-        # Check first that this user owns the scanned_email
-        linked_email = (
-            db.query(LinkedEmails)
-            .filter(
-                LinkedEmails.email == linked_email_address,
-                LinkedEmails.user_id == user_id,
-            )
-            .first()
+        linked_email = crud.linked_emails.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email_address
         )
-
-        if not linked_email:
-            raise HTTPException(
-                status_code=400, detail=f"Could not find linked email"
-            )
 
         # Fetch the unsubscribe links for this user
         links = (
             db.query(UnsubscribeLinks)
             .filter(
-                UnsubscribeLinks.linked_email_address == linked_email_address,
+                UnsubscribeLinks.linked_email_address == linked_email.email,
                 UnsubscribeLinks.scanned_email_id == scanned_email_id,
             )
             .all()
         )
 
         return links
-    
+
     def unsubscribe(
-            self,
-            db: Session,
-            *,
-            scanned_email_ids: List[int],
-            linked_email: str,
-            user_id: int,
-            page: int,
+        self,
+        db: Session,
+        *,
+        scanned_email_ids: List[int],
+        linked_email_address: str,
+        user_id: int,
+        page: int,
     ) -> list:
         """Unsubscribe from a scanned email
 
@@ -87,21 +76,9 @@ class CRUDUnsubscribeLinks(
         Returns:
             list: The updated unsubscribe links
         """
-
-        # Check first that this user owns the scanned_email
-        linked_email = (
-            db.query(LinkedEmails)
-            .filter(
-                LinkedEmails.email == linked_email,
-                LinkedEmails.user_id == user_id,
-            )
-            .first()
+        linked_email = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email_address
         )
-
-        if not linked_email:
-            raise HTTPException(
-                status_code=400, detail=f"Could not find linked email"
-            )
 
         links = (
             db.query(UnsubscribeLinks)
@@ -113,7 +90,6 @@ class CRUDUnsubscribeLinks(
         )
 
         for link in links:
-            
             res = requests.get(link.link)
 
             # TODO: Do something with the res.text. We could possibly parse it
@@ -122,7 +98,7 @@ class CRUDUnsubscribeLinks(
                 link.unsubscribe_status = UnsubscribeStatus.success
             else:
                 link.unsubscribe_status = UnsubscribeStatus.failure
-        
+
         db.commit()
 
         # Fetch the list of scanned emails for the front-end to update data
@@ -132,7 +108,6 @@ class CRUDUnsubscribeLinks(
             linked_email=linked_email.email,
             page=page,
         )
-
 
 
 unsubscribe_links = CRUDUnsubscribeLinks(UnsubscribeLinks)

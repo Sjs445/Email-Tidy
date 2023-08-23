@@ -18,10 +18,12 @@ class UnsubscribeEmailsCreate(BaseModel):
     unsubscribe_status: str
     insert_ts: str
 
+
 class UnsubscribeEmail(BaseModel):
     scanned_email_ids: List[int]
     linked_email_address: EmailStr
     page: int = 0
+
 
 # Placeholder
 class UnsubscribeEmailUpdate(BaseModel):

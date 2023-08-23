@@ -24,7 +24,9 @@ class UnsubscribeLinks(Base):
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     link = Column(String, nullable=False)
     unsubscribe_status = Column(Enum(UnsubscribeStatus), nullable=False)
-    insert_ts = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    insert_ts = Column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
     scanned_email_id = Column(
         Integer, ForeignKey("scanned_emails.id", ondelete="CASCADE", onupdate="CASCADE")
     )

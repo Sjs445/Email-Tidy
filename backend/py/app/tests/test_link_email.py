@@ -64,14 +64,16 @@ class TestLinkEmail:
         assert response.get("linked_emails") == [
             {"email": "email@yahoo.com", "id": mock.ANY, "is_active": True}
         ]
-    
+
     def test_delete_linked_email(self) -> None:
         """Test deleting a linked email
 
         Routes tested:
             /linked_emails/
         """
-        linked_email = crud_linked_emails.linked_email.get_by_email(self.session, email="email@yahoo.com")
+        linked_email = crud_linked_emails.linked_email.get_by_email(
+            self.session, email="email@yahoo.com"
+        )
         response = self.client.delete(
             f"/linked_emails/{linked_email.id}",
             headers=self.auth_header,

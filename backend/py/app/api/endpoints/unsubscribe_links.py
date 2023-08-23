@@ -37,6 +37,7 @@ def get_unsubscribe_links_by_email(
         )
     }
 
+
 @router.post("/")
 def unsubscribe(
     *,
@@ -56,10 +57,10 @@ def unsubscribe(
     """
     return {
         "scanned_emails": crud.unsubscribe_links.unsubscribe(
-        db,
-        scanned_email_ids=unsub_info.scanned_email_ids,
-        linked_email=unsub_info.linked_email_address,
-        user_id=user.id,
-        page=unsub_info.page
+            db,
+            scanned_email_ids=unsub_info.scanned_email_ids,
+            linked_email_address=unsub_info.linked_email_address,
+            user_id=user.id,
+            page=unsub_info.page,
         )
     }

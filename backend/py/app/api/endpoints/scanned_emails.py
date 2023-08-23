@@ -64,6 +64,7 @@ def get_scanned_emails(
         )
     }
 
+
 @router.get("/count/{linked_email}")
 def count_scanned_emails(
     *,
@@ -82,9 +83,7 @@ def count_scanned_emails(
         dict: The number of scanned emails.
     """
     return {
-        "count" : crud.scanned_emails.count_scanned_emails(
-            db,
-            user_id=user.id,
-            linked_email=linked_email
+        "count": crud.scanned_emails.count_scanned_emails(
+            db, user_id=user.id, linked_email=linked_email
         )
     }
