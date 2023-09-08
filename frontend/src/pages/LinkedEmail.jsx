@@ -7,7 +7,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
+import UnsubscribeStatus from '../components/UnsubscribeStatus';
 
+
+// Maybe pass the page number and linked_email to this component as args
 function LinkedEmail() {
 
   const navigate = useNavigate();
@@ -142,7 +145,7 @@ const onSubmit = e => {
                  onChange={onChange} />
                 <label htmlFor={scanned_email.id}>Unsubscribe</label>
                 </div>
-                : <p>{scanned_email.unsubscribe_status}</p>
+                : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} />
             ) : <p>No unsubscribe links found</p>}
             </td>
         </tr>
@@ -152,13 +155,15 @@ const onSubmit = e => {
 
     {/* TODO: Add number links to go directly to a page */}
 
+    <div style={{display: 'flex', justifyContent: 'space-between'}}>
     {/* Don't allow someone to go to the previous page if we're on page 0*/}
-    {currentPage === 0 ? <button className='btn' disabled>Prev Page</button> : <button className='btn'  onClick={ () => paginate(currentPage-1)}>Prev Page</button> }
+    {currentPage === 0 ? <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : <button className='btn btn-prev' onClick={ () => paginate(currentPage-1)}>&laquo; Prev Page</button> }
 
     {/* Don't allow someone to go to the next page if we're at the max count of emails */}
-    { seenCount < scannedEmailCount  ? <button className='btn' onClick={ () => paginate(currentPage+1)}>Next Page</button> : <button className='btn' disabled>Next Page</button>  }
+    { seenCount < scannedEmailCount  ? <button className='btn btn-next' onClick={ () => paginate(currentPage+1)}>Next Page &raquo;</button> : <button className='btn btn-next' disabled>&raquo;Next Page</button>  }
+    </div>
     
-    <button type="submit" className='btn btn-block'>Unsubscribe</button>
+    <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe</button>
     </form>
     ) : (
       <div>
