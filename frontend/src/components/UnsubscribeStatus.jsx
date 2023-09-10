@@ -4,7 +4,7 @@
 import Modal from './Modal';
 import { useState } from 'react';
 
-function UnsubscribeStaus( { scanned_email_id, unsubscribe_status } ) {
+function UnsubscribeStaus( { scanned_email_id, unsubscribe_status, linked_email } ) {
 
   const [openModal, setOpenModal] = useState(false);
 
@@ -21,7 +21,9 @@ function UnsubscribeStaus( { scanned_email_id, unsubscribe_status } ) {
                 <button onClick={onClick} className="btn" style={{marginBottom: '5px'}}>See Links</button>
                 <Modal 
       open={openModal} 
-      onClose={() => setOpenModal(false)} />
+      onClose={() => setOpenModal(false)}
+      scanned_email_id={scanned_email_id}
+      linked_email={linked_email} />
                 </div>
             ) : unsubscribe_status === 'success' ? ( 
             <p style={{color: "green"}}>success</p>

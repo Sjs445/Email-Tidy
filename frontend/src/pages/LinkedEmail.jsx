@@ -118,7 +118,7 @@ const onSubmit = e => {
     <section>
     {scanned_emails.length > 0 ? (
       <form onSubmit={onSubmit}>
-      <table>
+      <table className='content-table'>
         <thead>
           <tr>
               <th>From</th>
@@ -145,7 +145,7 @@ const onSubmit = e => {
                  onChange={onChange} />
                 <label htmlFor={scanned_email.id}>Unsubscribe</label>
                 </div>
-                : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} />
+                : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} linked_email={linked_email} />
             ) : <p>No unsubscribe links found</p>}
             </td>
         </tr>

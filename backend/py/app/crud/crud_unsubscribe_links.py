@@ -39,7 +39,7 @@ class CRUDUnsubscribeLinks(
             list: The list of unsubscribe links objects.
         """
 
-        linked_email = crud.linked_emails.get_single_by_user_id(
+        linked_email = crud.linked_email.get_single_by_user_id(
             db, user_id=user_id, linked_email_address=linked_email_address
         )
 
