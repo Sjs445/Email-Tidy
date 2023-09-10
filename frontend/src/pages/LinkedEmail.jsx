@@ -137,13 +137,17 @@ const onSubmit = e => {
             {scanned_email.link_count > 0 ? (
               scanned_email.unsubscribe_status === 'pending' ? 
                 <div>
-                <input
-                 type="checkbox"
-                 id={scanned_email.id}
-                 name={scanned_email.id}
-                 value={scanned_email.id}
-                 onChange={onChange} />
-                <label htmlFor={scanned_email.id}>Unsubscribe</label>
+                <label className='checkbox' htmlFor={scanned_email.id}>
+                  <input
+                  className='checkbox__input'
+                  type="checkbox"
+                  id={scanned_email.id}
+                  name={scanned_email.id}
+                  value={scanned_email.id}
+                  onChange={onChange} />
+                  <div className='checkbox__box'></div>
+                  Unsubscribe
+                </label>
                 </div>
                 : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} linked_email={linked_email} />
             ) : <p>No unsubscribe links found</p>}
