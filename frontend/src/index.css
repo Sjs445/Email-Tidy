@@ -295,7 +295,7 @@ h3 {
 }
 
 .content-table thead tr {
-  background-color: #009879;
+  background-color: #000;
   color: #ffffff;
   text-align: center;
   font-weight: bold;
@@ -315,7 +315,7 @@ h3 {
 }
 
 .content-table tbody tr:last-of-type {
-  border-bottom: 2px solid #009879;
+  border-bottom: 2px solid #000;
 }
 
 /* Custom Checkbox */
@@ -357,4 +357,42 @@ h3 {
 
 .checkbox__input:checked + .checkbox__box::after {
   transform: scale(1);
+}
+
+/* Button Class For Seeing Links */
+.button {
+	display: flex;
+	height: 50px;
+	padding: 0;
+	background: #767e7c;
+	border: none;
+	outline: none;
+	border-radius: 5px;
+	overflow: hidden;
+	font-family: 'Poppins', sans-serif;
+	font-size: 16px;
+	font-weight: 500;
+	cursor: pointer;
+}
+
+.button:hover {
+	background: #40444393;
+}
+
+.button:active {
+	background: #40444393;
+}
+
+.button__text,
+.button__icon {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 24px;
+	color: #fff;
+	height: 100%;
+}
+
+.button__icon {
+	font-size: 1.25em;
+	background: rgba(0, 0, 0, 0.08);
 }

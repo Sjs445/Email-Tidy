@@ -16,9 +16,15 @@ function UnsubscribeStaus( { scanned_email_id, unsubscribe_status, linked_email 
   return (
     <div>
         { unsubscribe_status === 'failure' ? (
-               <div style={{margin: 'auto', width: '75%'}}>
+               <div>
                 <p style={{ color: "red"}}>failed</p>
-                <button onClick={onClick} className="btn" style={{marginBottom: '5px'}}>See Links</button>
+                <button type='button' className='button' onClick={onClick} style={{marginBottom: '5px'}}>
+                <span className='button__text'>View Links</span>
+                <span className='button__icon'>
+                <ion-icon name="ellipsis-vertical-outline"></ion-icon>
+                </span>
+                
+                </button>
                 <Modal 
       open={openModal} 
       onClose={() => setOpenModal(false)}
