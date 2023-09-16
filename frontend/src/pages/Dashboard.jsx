@@ -6,6 +6,7 @@ import LinkedEmail from "../components/linkedEmail";
 import Spinner from '../components/Spinner';
 import {getLinkedEmails, reset} from '../features/linked_emails/linkedEmailSlice';
 import { test_token } from "../features/auth/authSlice";
+import { toast } from "react-toastify";
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -38,6 +39,9 @@ function Dashboard() {
     return <Spinner />
   }
 
+  if ( isError ) {
+    toast.error(message);
+  }
 
   return( <>
   <section className='heading'>

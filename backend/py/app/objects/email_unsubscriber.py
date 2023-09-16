@@ -231,7 +231,8 @@ class EmailUnsubscriber:
                     "id": 52,
                     "from": "sender@spam.mail.com",
                     "subject": "subject of email",
-                    "link_count": 3
+                    "link_count": 3,
+                    "unsubscribe_status": "pending",
                 },
         """
         # Get the email sender and convert from bytes if necessary
@@ -272,6 +273,7 @@ class EmailUnsubscriber:
             "from": email_from,
             "subject": email_subject,
             "link_count": len(unsubscribe_link_objs),
+            "unsubscribe_status": "pending",
         }
 
     @staticmethod

@@ -44,12 +44,27 @@ function Register() {
     const onSubmit = (e) => {
         e.preventDefault();
 
-        if(password !== password2) {
+        const userData = {
+            first_name, last_name, email, password,
+        }
+
+        let missing = [];
+        
+        for ( const key in userData ) {
+            if ( !userData[key] && key) {
+                let key_string = key.split('_').join(' ');
+                missing.push(key_string);
+            }
+        }
+
+        if ( missing.length > 0 ) {
+            let text = missing.join(", ");
+            toast.error(`Missing ${text}`);
+        }
+        else if(password !== password2) {
             toast.error('Passwords do not match')
         } else {
-            const userData = {
-                first_name, last_name, email, password,
-            }
+            
 
             dispatch(register(userData));
         }

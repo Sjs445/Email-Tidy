@@ -73,7 +73,7 @@ def encrypt_email_password(plain_password: str) -> bytes:
     Returns:
         bytes: The encrypted password
     """
-    return scrypt.encrypt(plain_password, settings.EMAIL_CRYPT_MASTER_PASS, maxtime=0.1)
+    return scrypt.encrypt(plain_password, settings.EMAIL_CRYPT_MASTER_PASS, maxtime=0.75)
 
 
 def decrypt_email_password(encrypted_password: bytes) -> str:
@@ -86,5 +86,5 @@ def decrypt_email_password(encrypted_password: bytes) -> str:
         str: The plain text password
     """
     return scrypt.decrypt(
-        encrypted_password, settings.EMAIL_CRYPT_MASTER_PASS, maxtime=0.1
+        encrypted_password, settings.EMAIL_CRYPT_MASTER_PASS, maxtime=0.75
     )

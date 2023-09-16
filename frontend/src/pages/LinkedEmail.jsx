@@ -164,7 +164,7 @@ const onSubmit = e => {
     {currentPage === 0 ? <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : <button className='btn btn-prev' onClick={ () => paginate(currentPage-1)}>&laquo; Prev Page</button> }
 
     {/* Don't allow someone to go to the next page if we're at the max count of emails */}
-    { seenCount < scannedEmailCount  ? <button className='btn btn-next' onClick={ () => paginate(currentPage+1)}>Next Page &raquo;</button> : <button className='btn btn-next' disabled>&raquo;Next Page</button>  }
+    { seenCount < scannedEmailCount  ? <button className='btn btn-next' onClick={ () => paginate(currentPage+1)}>Next Page &raquo;</button> : <button className='btn btn-next' disabled>Next Page &raquo;</button>  }
     </div>
     
     <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe</button>

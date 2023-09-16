@@ -15,7 +15,7 @@ export const createLinkedEmail = createAsyncThunk('linked_emails/create', async 
         const token = thunkAPI.getState().auth.user;
         return await linkedEmailService.createLinkedEmail(linkedEmailData, token);
     } catch (error) {
-        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });

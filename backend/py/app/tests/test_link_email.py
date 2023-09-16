@@ -39,7 +39,7 @@ class TestLinkEmail:
             "/linked_emails/",
             json={
                 "email": "email@yahoo.com",
-                "password": "123abcmnbiou",
+                "password": "qcvhhitijalhfnll",
             },
             headers=self.auth_header,
         ).json()
@@ -49,7 +49,7 @@ class TestLinkEmail:
         linked_email = crud_linked_emails.linked_email.get_by_email(
             self.session, email=email
         )
-        assert decrypt_email_password(linked_email.password) == "123abcmnbiou"
+        assert decrypt_email_password(linked_email.password) == "qcvhhitijalhfnll"
 
     def test_get_linked_emails(self) -> None:
         """Test getting a list of currently linked_emails
@@ -62,7 +62,7 @@ class TestLinkEmail:
             headers=self.auth_header,
         ).json()
         assert response.get("linked_emails") == [
-            {"email": "email@yahoo.com", "id": mock.ANY, "is_active": True}
+            {"email": "email@yahoo.com", "id": mock.ANY, "is_active": True, "insert_ts": mock.ANY}
         ]
 
     def test_delete_linked_email(self) -> None:
