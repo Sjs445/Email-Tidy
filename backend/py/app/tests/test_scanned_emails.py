@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 from unittest import mock
+from datetime import datetime
 
 from app.crud import crud_user, crud_linked_emails, crud_unsubscribe_links
 from app.main import app
@@ -66,6 +67,7 @@ class TestLinkEmail:
                 db=self.session,
                 email_msg=message,
                 linked_email_address=linked_email.email,
+                inbox_date=datetime.now(),
             )
 
         # Fetch the list of scanned_emails for page 0

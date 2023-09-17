@@ -5,10 +5,12 @@ import re
 import requests
 import lxml.html
 
+from datetime import datetime
 from sqlalchemy.orm import Session
 from email.header import decode_header
 from email.message import Message
 from email.header import Header
+from email.utils import parsedate_to_datetime
 from fastapi import HTTPException
 from imaplib import IMAP4_SSL
 from typing import List, Tuple, Union
@@ -141,7 +143,17 @@ class EmailUnsubscriber:
                     ...
                 ]
         """
-        status, messages = self.imap.select("INBOX")
+
+        # Throttle to 30 emails at once.
+        # TODO make this a background task to allow for scanning more emails.
+        if how_many > 30:
+            raise HTTPException(
+                status_code=400,
+                detail="Error you can not scan more than 30 emails at a time"
+            )
+
+        # Readonly does not mark emails as SEEN
+        status, messages = self.imap.select("INBOX", readonly=True)
         if status != "OK":
             raise HTTPException(
                 status_code=400,
@@ -194,10 +206,20 @@ class EmailUnsubscriber:
             # Get the email as an email object
             email_msg = email.message_from_bytes(msg[0][1])
 
+            # Get the time the email was added to the inbox.
+            status, data = self.imap.fetch(str(i), "(INTERNALDATE)")
+
+            if response != "OK":
+                raise Exception(f"Unable to fetch INTERNALDATE for email: {i}")
+            
+            str_datetime = data[0].decode().split('"')[1]
+            datetime_obj = parsedate_to_datetime(str_datetime)
+
             # Scan the email Message object
-            scanned_emails.append(
-                self._scan_email_message_obj(db, email_msg, self.email)
-            )
+            scanned_email = self._scan_email_message_obj(db, email_msg, self.email, datetime_obj)
+
+            if scanned_email:
+                scanned_emails.append(scanned_email)
 
             current_iteration += 1
             # print_progress(
@@ -213,7 +235,7 @@ class EmailUnsubscriber:
 
     @classmethod
     def _scan_email_message_obj(
-        cls, db: Session, email_msg: Message, linked_email_address: str
+        cls, db: Session, email_msg: Message, linked_email_address: str, inbox_date: datetime,
     ) -> dict:
         """Scan an email message object. Here we get the message sender info such as
         the email subject and who it's being sent from. Then scan the actual email content
@@ -224,6 +246,7 @@ class EmailUnsubscriber:
             db (Session): The db session object.
             email_message (Message): The email message object.
             linked_email_address (Str): The email address of the recipient
+            inbox_date (datetime): The time the email was added to the inbox
 
         Returns:
             dict: The id, email_from, subject and unsubscribe link count
@@ -240,11 +263,26 @@ class EmailUnsubscriber:
             email_msg["From"], email_msg["Subject"]
         )
 
+        # Don't add scanned emails that already exist
+        existing_email = (
+            db.query(ScannedEmails)
+            .filter(
+                ScannedEmails.email_from == email_from,
+                ScannedEmails.subject == email_subject,
+                ScannedEmails.inbox_date == inbox_date,
+            )
+            .first()
+        )
+
+        if existing_email:
+            return {}
+
         # Insert the scanned_email info into the db.
         scanned_email = ScannedEmails(
             email_from=email_from,
             subject=email_subject,
             linked_email_address=linked_email_address,
+            inbox_date=inbox_date,
         )
         db.add(scanned_email)
         db.flush()

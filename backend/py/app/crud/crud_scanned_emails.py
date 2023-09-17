@@ -100,29 +100,29 @@ class CRUDScannedEmails(
             offset = 0
 
         # Bind WHERE params for email_from and a linked_email_address
-        where += "WHERE scanned_emails.linked_email_address = :linked_email"
+        where += "WHERE se.linked_email_address = :linked_email"
         where += " AND users.id = :user_id"
         bind["linked_email"] = linked_email.email
         bind["user_id"] = user_id
 
         if email_from is not None and isinstance(email_from, str):
-            where += " AND scanned_emails.email_from = :email_from"
+            where += " AND se.email_from = :email_from"
             bind["email_from"] = email_from
 
         bind["offset"] = offset
 
         # SQL AUDIT: Parameters are passed using bind. SAFE.
         results = db.execute(
-            f"""SELECT scanned_emails.*, COUNT(unsubscribe_links.scanned_email_id) AS link_count, unsubscribe_links.unsubscribe_status
-                    FROM scanned_emails
-                LEFT OUTER JOIN unsubscribe_links
-                    ON unsubscribe_links.scanned_email_id = scanned_emails.id
-                INNER JOIN linked_emails
-                    ON linked_emails.email = scanned_emails.linked_email_address
+            f"""SELECT se.id, se.email_from, se.subject, se.linked_email_address, COUNT(ul.scanned_email_id) AS link_count, ul.unsubscribe_status
+                    FROM scanned_emails AS se
+                LEFT OUTER JOIN unsubscribe_links AS ul
+                    ON ul.scanned_email_id = se.id
+                INNER JOIN linked_emails AS le
+                    ON le.email = se.linked_email_address
                 INNER JOIN users
-                    ON users.id = linked_emails.user_id
+                    ON users.id = le.user_id
                 {where}
-                GROUP BY scanned_emails.id, scanned_emails.insert_ts, unsubscribe_links.unsubscribe_status
+                GROUP BY se.id, se.insert_ts, ul.unsubscribe_status
                 LIMIT 10
                 OFFSET :offset
             """,
@@ -134,8 +134,8 @@ class CRUDScannedEmails(
                 "from": res[1],
                 "subject": res[2],
                 "linked_email_address": res[3],
-                "link_count": res[5],
-                "unsubscribe_status": res[6],
+                "link_count": res[4],
+                "unsubscribe_status": res[5],
             }
             for res in results
         ]

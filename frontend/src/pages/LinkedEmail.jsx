@@ -8,6 +8,7 @@ import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset} from '.
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
+import ScanEmailForm from '../components/ScanEmailForm';
 
 
 // Maybe pass the page number and linked_email to this component as args
@@ -49,6 +50,7 @@ const onSubmit = e => {
   }
 
   dispatch(unsubscribeFromLinks(unsubscribeData));
+  setFormData([]);
   };
 
   
@@ -121,14 +123,14 @@ const onSubmit = e => {
       <table className='content-table'>
         <thead>
           <tr>
-              <th>From</th>
-              <th>Subject</th>
-              <th>Unsubscribe Links Found</th>
-              <th>Unsubscribe</th>
-            </tr>
+            <th>From</th>
+            <th>Subject</th>
+            <th>Unsubscribe Links Found</th>
+            <th>Unsubscribe</th>
+          </tr>
         </thead>
         <tbody>
-        {scanned_emails.map( (scanned_email) => (   
+        {scanned_emails.slice(0, 10).map( (scanned_email) => (   
         <tr key={scanned_email.id}>
             <td>{scanned_email.from}</td>
             <td>{scanned_email.subject}</td>
@@ -172,7 +174,9 @@ const onSubmit = e => {
     ) : (
       <div>
         <h3>No scanned emails found.</h3>
-        <button className="btn btn-block" onClick={() => dispatch(scanLinkedEmail({linked_email_id: params.id, how_many: 10}))}>Scan 10 Emails for Spam</button>
+        <ScanEmailForm
+        linked_email_id={params.id}
+        setScannedEmailCount={setScannedEmailCount} />
       </div>
     )}
     
