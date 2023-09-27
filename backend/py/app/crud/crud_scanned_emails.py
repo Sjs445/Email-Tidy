@@ -28,7 +28,7 @@ class CRUDScannedEmails(
             user_id (int): the session user's user_id.
 
         Returns:
-            int: The number of scanned emails
+            int: The celery task id for scanning the emails
         """
 
         # Get the linked_email from the db
@@ -60,11 +60,10 @@ class CRUDScannedEmails(
                 status_code=400,
                 detail=f"Could not login for linked email '{linked_email.email}'",
             )
-        scanned = email_unsubscriber.get_unsubscribe_links_from_inbox(
-            db, how_many=obj_in.how_many
+        task_id = email_unsubscriber.get_unsubscribe_links_from_inbox(
+            linked_email_id=linked_email.id, user_id=user_id, how_many=obj_in.how_many
         )
-        del email_unsubscriber
-        return scanned
+        return task_id
 
     def get_scanned_emails(
         self,
@@ -168,6 +167,36 @@ class CRUDScannedEmails(
         ) or 0
 
         return count
+    
+    def delete_scanned_emails(
+            self,
+            db: Session,
+            *,
+            user_id: int,
+            linked_email: str,
+    ) -> int:
+        """Delete all scanned emails in this linked_email.
+        NOTE this does not delete emails from the user's inbox, but only
+        deletes the scanned_emails from the scanned_emails table linked to this linked_email.
+
+        Args:
+            db (Session): The db session
+            user_id (int): The session user id
+            linked_email (str): The linked email to delete from
+
+        Returns:
+            int: Number of deleted scanned emails
+        """
+        link_email_obj = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email
+        )
+
+        deleted_count = db.execute(
+            "DELETE FROM scanned_emails WHERE linked_email_id = :linked_email_id",
+            {"linked_email_id": link_email_obj.id},
+        ).count()
+        db.commit()
+        return deleted_count
 
 
 scanned_emails = CRUDScannedEmails(ScannedEmails)

@@ -1,10 +1,11 @@
 import email
-import os
 import quopri
 import re
-import requests
+import os
 import lxml.html
 
+from celery import Celery
+from celery import Task
 from datetime import datetime
 from sqlalchemy.orm import Session
 from email.header import decode_header
@@ -13,9 +14,13 @@ from email.header import Header
 from email.utils import parsedate_to_datetime
 from fastapi import HTTPException
 from imaplib import IMAP4_SSL
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 from app.models import ScannedEmails, UnsubscribeLinks, UnsubscribeStatus
+from app.config.config import settings
+
+celery = Celery(__name__)
+
 
 
 class EmailUnsubscriber:
@@ -55,8 +60,6 @@ class EmailUnsubscriber:
         # Now login to the imap server
         imap_server = self.SUPPORTED_IMAP_SERVERS[email_type]
         self.imap = IMAP4_SSL(imap_server)
-
-        self.unsubscriber_info: List[dict] = []
 
     def __del__(self) -> None:
         """Disconnect from the imap server upon calling the destructor."""
@@ -117,7 +120,7 @@ class EmailUnsubscriber:
         return domain
 
     def get_unsubscribe_links_from_inbox(
-        self, db: Session, how_many: int = None, order_by: str = "desc"
+        self, linked_email_id: int, user_id: int, how_many: int = None, order_by: str = "desc"
     ) -> List[dict]:
         """Iterate through the Inbox looking through the email body for
         words in `self.UNSUBSCRIBE_KEYWORDS`.
@@ -125,7 +128,8 @@ class EmailUnsubscriber:
         possible link that is following the position of said found keyword.
 
         Args:
-            db (Session): The db session
+            linked_email_id (int): The id of the linked email
+            user_id (int): The user id of the actor
             how_many (int, optional): Number of emails to fetch from inbox descending.
                 Defaults to all emails in the Inbox.
             order_by (str, optional): Method of getting the emails, i.e. 'desc', 'asc'.
@@ -164,6 +168,8 @@ class EmailUnsubscriber:
         # we can return early.
         if not messages or not messages[0] or not int(messages[0]):
             return
+        
+        from app.celery_worker import scan_emails
 
         number_of_emails = int(messages[0])
 
@@ -187,16 +193,40 @@ class EmailUnsubscriber:
                 f" {number_of_emails}",
             )
 
-        # TODO? Turn these into logs
-        print("Fetching emails...")
+        # Hand off the work to celery and return the job_id
+        task = scan_emails.delay(self.email_type, linked_email_id, user_id, range_params, how_many)
+        return task.task_id
+
+    def _do_scan_emails(self, task: Task, range_params: tuple, how_many: int, db: Session ) -> int:
+        """Scan the emails in the inbox.
+        The reason this is a static method is because this method is called from the celery worker file.
+        This allows us to have access to the task param and self.
+
+        Args:
+            task (Task): The celery task object
+            range_params (tuple): The range params used to fetch emails from the inbox
+            how_many (int): Number of emails to scan
+            db (Session): The db session
+
+        Raises:
+            Exception: If we can't fetch the email
+            Exception: If we can't fetch the internal date of the email
+
+        Returns:
+            int: The number of emails that found unsubscribe links
+        """
+        # Readonly does not mark emails as SEEN
+        status, messages = self.imap.select("INBOX", readonly=True)
+        if status != "OK":
+            raise Exception(
+                f"Could not select Inbox...\tGot status: {status}",
+            )
+        
+        # TODO Turn these into logs
+        # print("Fetching emails...")
         current_iteration = 0
-        # print_progress(
-        #     current_iteration=current_iteration,
-        #     total=how_many,
-        #     prefix="Progress:",
-        #     suffix="Complete",
-        # )
-        scanned_emails = []
+        scanned_emails = 0
+
         for i in range(*range_params):
             response, msg = self.imap.fetch(str(i), "(RFC822)")
 
@@ -209,7 +239,7 @@ class EmailUnsubscriber:
             # Get the time the email was added to the inbox.
             status, data = self.imap.fetch(str(i), "(INTERNALDATE)")
 
-            if response != "OK":
+            if status != "OK":
                 raise Exception(f"Unable to fetch INTERNALDATE for email: {i}")
             
             str_datetime = data[0].decode().split('"')[1]
@@ -219,18 +249,21 @@ class EmailUnsubscriber:
             scanned_email = self._scan_email_message_obj(db, email_msg, self.email, datetime_obj)
 
             if scanned_email:
-                scanned_emails.append(scanned_email)
+                scanned_emails += 1
 
+            # Update the celery task state to log our progress
+            task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': current_iteration,
+                    'total': how_many,
+                }
+            )
             current_iteration += 1
-            # print_progress(
-            #     current_iteration=current_iteration,
-            #     total=how_many,
-            #     prefix="Progress:",
-            #     suffix="Complete",
-            # )
 
         # Close the INBOX
         self.imap.close()
+
         return scanned_emails
 
     @classmethod

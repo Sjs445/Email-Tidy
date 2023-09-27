@@ -25,7 +25,7 @@ services:
     ports:
       - 8000:8000
     volumes:
-      # Bind these volumns for easy development without having to restart the containers. Remove for production.
+      # Bind these volumes for easy development without having to restart the containers. Remove for production.
       - type: bind
         source: ./backend/py/app
         target: /app
@@ -44,6 +44,44 @@ services:
       - type: bind
         source: ./frontend
         target: /app
+    
+  emailtidy-redis:
+    container_name: emailtidy-redis
+    image: redis:7.2.1-alpine
+
+  emailtidy-celery:
+    container_name: emailtidy-celery
+    env_file:
+      - .env
+    build:
+      context: ./backend/py
+    command: celery -A celery_worker.celery worker --loglevel=info
+    volumes:
+      - ./backend/py/app:/app
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - emailtidy-py
+      - emailtidy-redis
+
+  emailtidy-flower:
+    container_name: emailtidy-flower
+    env_file:
+      - .env
+    build:
+      context: ./backend/py
+    command: celery -A celery_worker.celery flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - emailtidy-py
+      - emailtidy-redis
+      - emailtidy-celery
+
 
 volumes:
   db-data:

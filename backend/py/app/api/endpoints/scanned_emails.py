@@ -15,8 +15,7 @@ def scan_emails(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
-    """Scan emails for a linked_email address. Scans the email's inbox for possible marketing/spam
-    to unsubscribe from.
+    """Scan emails for a linked_email address. Scans the email's inbox for possible marketing/spam to unsubscribe from.
 
     Args:
         scan_email (schemas.ScanEmails): The scan email info.
@@ -24,10 +23,10 @@ def scan_emails(
         user (models.User): The user session.
 
     Returns:
-        dict: Number of emails scanned.
+        dict: The task id of the celery job
     """
     return {
-        "scanned_emails": crud.scanned_emails.scan_emails(
+        "task_id": crud.scanned_emails.scan_emails(
             db, obj_in=scan_email, user_id=user.id
         )
     }

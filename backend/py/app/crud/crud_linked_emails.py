@@ -1,9 +1,7 @@
-import re
-
 from typing import List, Optional
 
+from celery.result import AsyncResult
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
@@ -119,6 +117,36 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         db.commit()
         db.refresh(db_obj)
         return db_obj
+    
+    def get_scan_status(
+        self, db: Session, *, linked_email_address: str, user_id: int,
+    ) -> dict:
+        """Get the status of a scan by linked_email_id.
+
+        Args:
+            db (Session): The db session
+            linked_email_address (str): The linked_email we're checking for
+            user_id (int): The session user_id
+
+        Returns:
+            dict: The scan status information
+        """
+        linked_email = self.get_single_by_user_id(db, user_id=user_id, linked_email_address=linked_email_address)
+        task_id = linked_email.task_id
+
+        # task_id is removed from the linked_email object whenever a task is completed so return early
+        # if it does not exist i.e. has no task running.
+        if not task_id:
+            return {
+                'state': None,
+                'details': None,
+            }
+        
+        result = AsyncResult(task_id)
+        return {
+            'state': result.state,
+            'details': result.info
+        }
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)

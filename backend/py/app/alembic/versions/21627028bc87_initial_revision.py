@@ -27,6 +27,12 @@ def upgrade() -> None:
         sa.Column("is_superuser", sa.Boolean(), nullable=True),
         sa.Column("first_name", sa.String(), nullable=False),
         sa.Column("last_name", sa.String(), nullable=False),
+        sa.Column(
+            "insert_ts",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            server_default=sa.sql.func.now(),
+        ),
         sa.PrimaryKeyConstraint("id", "email"),
     )
     op.create_index(op.f("ix_users_email"), "users", ["email"], unique=True)
@@ -38,6 +44,16 @@ def upgrade() -> None:
         sa.Column("password", sa.String(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=True),
         sa.Column("user_id", sa.Integer(), nullable=True),
+        sa.Column(
+            "insert_ts",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            server_default=sa.sql.func.now(),
+        ),
+        sa.Column(
+            "task_id",
+            sa.String(), nullable=True,
+        ),
         sa.ForeignKeyConstraint(
             ["user_id"],
             ["users.id"],
@@ -54,6 +70,17 @@ def upgrade() -> None:
         sa.Column("email_from", sa.String(), nullable=False),
         sa.Column("subject", sa.String(), nullable=True),
         sa.Column("linked_email_address", sa.String(), nullable=True),
+        sa.Column(
+            "insert_ts",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            server_default=sa.sql.func.now(),
+        ),
+        sa.Column(
+            "inbox_date",
+            sa.DateTime(timezone=True),
+            nullable=True,
+        ),
         sa.ForeignKeyConstraint(
             ["linked_email_address"],
             ["linked_emails.email"],
@@ -76,6 +103,12 @@ def upgrade() -> None:
         ),
         sa.Column("scanned_email_id", sa.Integer(), nullable=True),
         sa.Column("linked_email_address", sa.String(), nullable=True),
+        sa.Column(
+            "insert_ts",
+            sa.DateTime(timezone=True),
+            nullable=True,
+            server_default=sa.sql.func.now(),
+        ),
         sa.ForeignKeyConstraint(
             ["linked_email_address"],
             ["linked_emails.email"],
