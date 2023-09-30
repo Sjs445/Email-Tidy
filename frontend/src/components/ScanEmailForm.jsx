@@ -1,10 +1,14 @@
+import axios from 'axios';
 import {useState} from 'react';
-import { UseSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import {toast} from 'react-toastify';
 import { scanLinkedEmail, reset} from '../features/scanned_emails/scannedEmailSlice';
 
-function ScanEmailForm({linked_email_id, setScannedEmailCount}) {
+
+function ScanEmailForm({linked_email_id, setScannedEmailCount, setscanTaskId, setIsScanning}) {
     const dispatch = useDispatch();
+
+    const { user } = useSelector( (state) => state.auth );
 
     const [formData, setFormData ] = useState({
         how_many: 10,
@@ -29,8 +33,15 @@ function ScanEmailForm({linked_email_id, setScannedEmailCount}) {
     
         const scanEmailData = { how_many, linked_email_id };
 
+        setIsScanning(true);
         setScannedEmailCount(how_many);
-        dispatch(scanLinkedEmail(scanEmailData));
+
+        // TODO: Change this to be an async thunk method since the progress bar doesn't show up until this post is complete
+        axios.post("/scanned_emails/", scanEmailData, { headers: { Authorization: `Bearer ${user}`}}).then( (response) => {
+            setscanTaskId(response.data.task_id);
+        }).catch( error => {
+            toast.error(error.data.details);
+        })
       }
 
   return <section className='form'>

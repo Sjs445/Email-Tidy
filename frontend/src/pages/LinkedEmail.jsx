@@ -9,7 +9,7 @@ import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
 import ScanEmailForm from '../components/ScanEmailForm';
-
+import ProgressBar from '../components/ProgressBar';
 
 // Maybe pass the page number and linked_email to this component as args
 function LinkedEmail() {
@@ -25,8 +25,14 @@ function LinkedEmail() {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [scannedEmailCount, setScannedEmailCount] = useState(0);
+  const [scanTaskId, setscanTaskId] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
 
   const [formData, setFormData ] = useState([]);
+
+  const auth_header = {
+    Authorization: `Bearer ${user}`
+  };
 
   const onChange = (e) => {
     if ( e.target.checked ) {
@@ -57,39 +63,34 @@ const onSubmit = e => {
   // If there's no user token send them to the login page.
   // If the token exists verify it's a valid token before fetching for linked emails.
   useEffect( () => {
-    const fetch_count = async () => {
-      try {
-        const res = await axios.get(`/scanned_emails/count/${linked_email}`,
-      { headers: {
-        Authorization: `Bearer ${user}`
-        }
-      },
-    )
-    setScannedEmailCount(res.data.count)
-      } catch (error) {
-        toast.error('Failed to fetch scanned emails')
-        navigate("/")
-      }
-      
-    };
-
     if (!user) {
       navigate('/login');
     } else {
       dispatch(test_token())
         .then( () => {
 
-          fetch_count();
- 
-          const getScannedEmailData = {
-            page: currentPage,
-            linked_email: linked_email
-          }
-          
-          dispatch(getScannedEmails(getScannedEmailData));
-        })
-        .catch( (error) => {
-          console.log(error)
+          // Check if a current scan is running
+          axios.get(`/linked_emails/tasks/${linked_email}`, { headers: auth_header } ).then( response => {
+            if ( response.data.task ) {
+              setscanTaskId(response.data.task);
+              setIsScanning(true);
+            } else {
+              axios.get(`/scanned_emails/count/${linked_email}`, { headers: auth_header }).then( response => {
+                setScannedEmailCount(response.data.count);
+                if ( response.data.count) {
+                  const getScannedEmailData = {
+                    page: currentPage,
+                    linked_email: linked_email
+                  }
+                  dispatch(getScannedEmails(getScannedEmailData));
+                }
+              }).catch( error => {
+                toast.error(error.data.detail || 'Encountered an error')
+              })
+            }
+          }).catch( error => {
+            toast.error(error.data.detail);
+          })
         })
     }
 
@@ -97,7 +98,7 @@ const onSubmit = e => {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, currentPage])
+  }, [navigate, dispatch, user, currentPage, scanTaskId])
 
   // Paginate the data table
   const paginate = (currentPage) => {
@@ -108,6 +109,10 @@ const onSubmit = e => {
 
   if ( isLoading ) {
     return <Spinner />
+  }
+
+  if ( isScanning ) {
+    return <ProgressBar task_id={scanTaskId} auth_header={auth_header} setScanTaskId={setscanTaskId} setIsScanning={setIsScanning} />
   }
 
   return (
@@ -176,7 +181,10 @@ const onSubmit = e => {
         <h3>No scanned emails found.</h3>
         <ScanEmailForm
         linked_email_id={params.id}
-        setScannedEmailCount={setScannedEmailCount} />
+        setScannedEmailCount={setScannedEmailCount}
+        setscanTaskId={setscanTaskId}
+        setIsScanning={setIsScanning}
+        />
       </div>
     )}
     

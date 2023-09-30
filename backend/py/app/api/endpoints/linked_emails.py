@@ -79,13 +79,13 @@ def delete_linked_email(
     return {"id": email.id}
 
 @router.get("/tasks/{linked_email_address}")
-def get_scan_status(
+def get_current_running_task(
     *,
     linked_email_address: str,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
-    """Get the status of a scan by linked_email_address.
+    """Get the current running task id for this linked email.
     This tells us whether a scan is still happening for a linked_email_address.
 
     Args:
@@ -95,7 +95,7 @@ def get_scan_status(
         dict: Information regarding the status of the task
     """
     return {
-        "task": crud.linked_email.get_scan_status(
+        "task": crud.linked_email.get_task_id(
             db, linked_email_address=linked_email_address, user_id=user.id,
         )
     }

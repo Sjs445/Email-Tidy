@@ -1,3 +1,4 @@
+from celery.result import AsyncResult
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
@@ -85,4 +86,25 @@ def count_scanned_emails(
         "count": crud.scanned_emails.count_scanned_emails(
             db, user_id=user.id, linked_email=linked_email
         )
+    }
+
+@router.get("/task_status/{task_id}")
+def get_task_status(
+    *,
+    task_id: str,
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Get the status of a task by task id
+
+    Args:
+        task_id (str): The task id to check
+        user (models.User): The session user.
+
+    Returns:
+        dict: The task info
+    """
+    result = AsyncResult(task_id)
+    return {
+        "state": result.state,
+        "details": result.info,
     }

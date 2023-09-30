@@ -1,6 +1,5 @@
 from typing import List, Optional
 
-from celery.result import AsyncResult
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
@@ -118,10 +117,10 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         db.refresh(db_obj)
         return db_obj
     
-    def get_scan_status(
+    def get_task_id(
         self, db: Session, *, linked_email_address: str, user_id: int,
     ) -> dict:
-        """Get the status of a scan by linked_email_id.
+        """Get the task id for this linked email address.
 
         Args:
             db (Session): The db session
@@ -134,19 +133,7 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         linked_email = self.get_single_by_user_id(db, user_id=user_id, linked_email_address=linked_email_address)
         task_id = linked_email.task_id
 
-        # task_id is removed from the linked_email object whenever a task is completed so return early
-        # if it does not exist i.e. has no task running.
-        if not task_id:
-            return {
-                'state': None,
-                'details': None,
-            }
-        
-        result = AsyncResult(task_id)
-        return {
-            'state': result.state,
-            'details': result.info
-        }
+        return task_id
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)
