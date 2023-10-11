@@ -8,8 +8,6 @@ import { scanLinkedEmail, reset} from '../features/scanned_emails/scannedEmailSl
 function ScanEmailForm({linked_email_id, setScannedEmailCount, setscanTaskId, setIsScanning}) {
     const dispatch = useDispatch();
 
-    const { user } = useSelector( (state) => state.auth );
-
     const [formData, setFormData ] = useState({
         how_many: 10,
         linked_email_id: linked_email_id,
@@ -36,12 +34,7 @@ function ScanEmailForm({linked_email_id, setScannedEmailCount, setscanTaskId, se
         setIsScanning(true);
         setScannedEmailCount(how_many);
 
-        // TODO: Change this to be an async thunk method since the progress bar doesn't show up until this post is complete
-        axios.post("/scanned_emails/", scanEmailData, { headers: { Authorization: `Bearer ${user}`}}).then( (response) => {
-            setscanTaskId(response.data.task_id);
-        }).catch( error => {
-            toast.error(error.data.details);
-        })
+        dispatch(scanLinkedEmail(scanEmailData));
       }
 
   return <section className='form'>

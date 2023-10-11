@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_URL = '/scanned_emails/';
 
-// Scan a linked email for spam
+// Scan a linked email for spam. Starts a running task and returns a task id.
 const scanLinkedEmail = async ( scanEmailData, token ) => {
     const config = {
         headers: {
@@ -12,7 +12,7 @@ const scanLinkedEmail = async ( scanEmailData, token ) => {
 
     const response = await axios.post(API_URL, scanEmailData, config);
 
-    return response.data.scanned_emails;
+    return response.data.task_id;
 }
 
 // Get a list of scanned emails for a linked email
@@ -48,9 +48,35 @@ const unsubscribeFromLinks = async ( unsubscribeData, token ) => {
     return response.data.scanned_emails;
 }
 
+const getRunningTask = async ( linked_email, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.get(`/linked_emails/tasks/${linked_email}`, config);
+
+    return response.data.task;
+}
+
+const getScannedEmailCount = async ( linked_email, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.get(`/scanned_emails/count/${linked_email}`, config);
+
+    return response.data.count;
+}
+
 const scannedEmailService = {
     scanLinkedEmail,
     getScannedEmails,
+    getScannedEmailCount,
+    getRunningTask,
     unsubscribeFromLinks,
 }
 

@@ -37,7 +37,7 @@ export const login = createAsyncThunk('auth/login', async (user, thunkAPI) => {
 
 // Logout user
 export const logout = createAsyncThunk('auth/logout', async () => {
-  await authService.logout();
+  authService.logout();
 })
 
 // Test login token
@@ -48,7 +48,9 @@ export const test_token = createAsyncThunk('auth/test_token', async(_, thunkAPI)
 }
 catch (error) {
     const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
-    localStorage.removeItem('access_token');
+
+    // If testing the token fails remove token from local storage
+    authService.logout();
     return thunkAPI.rejectWithValue(message);
 }
 } )

@@ -49,7 +49,6 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
         domain = EmailUnsubscriber.get_domain_from_email(
             email_address=linked_email.email
         )
-        email_unsubscriber = EmailUnsubscriber(domain)
         email_unsubscriber = EmailUnsubscriber(email_type=domain)
 
         # Login the user and scan the emails.
@@ -71,6 +70,7 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
     
     finally:
         remove_task_id_from_linked_email(db, linked_email_id)
+        del email_unsubscriber
         db.close()
 
     return spam_emails_found

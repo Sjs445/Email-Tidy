@@ -17,3 +17,4 @@ python-multipart
 flower==2.0.1
 celery==5.3.4
 redis==5.0.0
+charset-normalizer==3.3.0

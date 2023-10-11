@@ -6,6 +6,7 @@ import lxml.html
 
 from celery import Celery
 from celery import Task
+from charset_normalizer import from_bytes
 from datetime import datetime
 from sqlalchemy.orm import Session
 from email.header import decode_header
@@ -233,7 +234,7 @@ class EmailUnsubscriber:
             if response != "OK":
                 raise Exception(f"Unable to fetch email: {i}\Response: {response}")
 
-            # Get the email as an email object
+            # Get the email as a message object
             email_msg = email.message_from_bytes(msg[0][1])
 
             # Get the time the email was added to the inbox.
@@ -241,7 +242,7 @@ class EmailUnsubscriber:
 
             if status != "OK":
                 raise Exception(f"Unable to fetch INTERNALDATE for email: {i}")
-            
+
             str_datetime = data[0].decode().split('"')[1]
             datetime_obj = parsedate_to_datetime(str_datetime)
 
@@ -291,10 +292,9 @@ class EmailUnsubscriber:
                     "unsubscribe_status": "pending",
                 },
         """
-        # Get the email sender and convert from bytes if necessary
-        email_from, email_subject = cls.decode_from_and_subject(
-            email_msg["From"], email_msg["Subject"]
-        )
+        # Get the email sender and subject and decode if necessary
+        email_from = cls.decode_email_header(email_msg["From"])
+        email_subject = cls.decode_email_header(email_msg["Subject"])
 
         # Don't add scanned emails that already exist
         existing_email = (
@@ -348,40 +348,37 @@ class EmailUnsubscriber:
         }
 
     @staticmethod
-    def decode_from_and_subject(
-        email_from: Header = None, email_subject: Header = None
-    ) -> Tuple[str, str]:
-        """Decode the from and subject.
+    def decode_email_header(
+        email_header: Header = None
+    ) -> str:
+        """Decode the email header. We first decode the email header using
+        pythons email library method decode_header. This gives a list of tuples
+        containing either already decoded data or still encoded data.
+        If the data is still encoded decode it given it's encoding.
 
         Args:
-            email_from (Header, optional): Email From Header. Defaults to None.
-            email_subject (Header, optional): Email Subject. Defaults to None.
+            email_header (Header, optional): The email header to decode
 
         Returns:
-            Tuple[str, str]: The email_from and email_subject
+            str: The decoded email header as a string
         """
-        email_from_bytes, from_encoding = decode_header(email_from)[0]
-        email_subject_bytes, subject_encoding = decode_header(email_subject)[0]
+        decoded_header = decode_header(email_header)
 
-        # Decode the email_from and email_subject from bytes. We do this by doing
-        # a series of checks:
-        #
-        #   1. If the from/subject is of type bytes we decode it from the given
-        #       encoding.
-        #   2. The encoding may have not been returned from decode_header().
-        #       In this case we can just perform a type conversion to string.
-        #
-        if isinstance(email_from_bytes, bytes) and from_encoding:
-            email_from_str = email_from_bytes.decode(from_encoding)
-        else:
-            email_from_str = str(email_from_bytes)
+        header = ""
+        for message in decoded_header:
+            if isinstance(message[0], bytes):
+                encoding = message[1]
 
-        if isinstance(email_subject_bytes, bytes) and subject_encoding:
-            email_subject_str = email_subject_bytes.decode(subject_encoding)
-        else:
-            email_subject_str = str(email_subject_bytes)
+                # Special case, encoding is "unknown-8bit" use charset normalizer
+                # to decode. This 'guesses' the encoding, but is right 99% of the time.
+                if encoding is not None and encoding == "unknown-8bit":
+                    header += str(from_bytes(message[0]).best())
+                else:
+                    header += message[0].decode(encoding or 'ASCII')
+            else:
+                header += message[0]
 
-        return email_from_str, email_subject_str
+        return header
 
     @classmethod
     def _get_unsubscribe_links_from_email(

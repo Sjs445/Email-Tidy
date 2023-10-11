@@ -22,12 +22,7 @@ function Dashboard() {
       navigate('/login');
     } else {
       dispatch(test_token())
-        .then( () => {
-          dispatch(getLinkedEmails());
-        })
-        .catch( (error) => {
-          console.log(error)
-        })
+        .then( () => dispatch(getLinkedEmails()) )
     }
     
     return () => {

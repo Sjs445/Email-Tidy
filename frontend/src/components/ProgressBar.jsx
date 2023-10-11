@@ -1,12 +1,20 @@
 import axios from 'axios';
 import {useState, useEffect} from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import { reset } from '../features/scanned_emails/scannedEmailSlice';
 
-function ProgressBar({task_id, auth_header, setScanTaskId, setIsScanning}) {
+function ProgressBar({auth_header, setIsScanning}) {
+    
+    const { task_id } = useSelector( (state) => state.scanned_email);
+
+    const [isRunning, setIsRunning] = useState(task_id ? true : false);
     const [filled, setFilled] = useState(0);
-	const [isRunning, setIsRunning] = useState(task_id ? true : false);
     const [waitAttempts, setWaitAttempts] = useState(0);
     const [pollCount, setPollCount] = useState(0);
+
+    const dispatch = useDispatch();
+
 	useEffect(() => {
 
 		if (isRunning && waitAttempts < 15 && filled < 100) {
@@ -20,23 +28,30 @@ function ProgressBar({task_id, auth_header, setScanTaskId, setIsScanning}) {
                     setFilled(filled_percent);
                     setTimeout(() => setPollCount(pollCount+1), 1000);
                 }
+                else if ( response.data.state === 'FAILURE') {
+                    setIsRunning(false);
+                    setIsScanning(false);
+                    toast.error('An error occurred while scanning your inbox');
+                }
                 else if ( response.data.state === 'SUCCESS') {
                     setFilled(100);
                     setIsRunning(false);
                     setIsScanning(false);
-                    setScanTaskId(null);
+
+                    return () => {
+                        dispatch(reset());
+                    }
                 }
                 else {
                     setTimeout(() => setWaitAttempts(waitAttempts+1), 1000);
                 }
             }).catch( error => {
-                toast.error(error)
+                toast.error(error.data.detail || 'Encountered an error');
             })
 		} else {
-            setScanTaskId(null);
             setIsScanning(false);
         }
-	},[isRunning, waitAttempts, pollCount])
+	},[isRunning, waitAttempts, pollCount, dispatch])
   return (
 	  <div>
         <h1>Scanning emails</h1>

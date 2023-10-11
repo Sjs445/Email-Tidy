@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
@@ -21,7 +21,7 @@ function LinkedEmail() {
   const linked_email = searchParams.get("linked_email");
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, isLoading, isError, message } = useSelector( (state) => state.scanned_email)
+  const { scanned_emails, task_id, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
 
   const [currentPage, setCurrentPage] = useState(0);
   const [scannedEmailCount, setScannedEmailCount] = useState(0);
@@ -68,28 +68,16 @@ const onSubmit = e => {
     } else {
       dispatch(test_token())
         .then( () => {
-
-          // Check if a current scan is running
-          axios.get(`/linked_emails/tasks/${linked_email}`, { headers: auth_header } ).then( response => {
-            if ( response.data.task ) {
-              setscanTaskId(response.data.task);
-              setIsScanning(true);
-            } else {
-              axios.get(`/scanned_emails/count/${linked_email}`, { headers: auth_header }).then( response => {
-                setScannedEmailCount(response.data.count);
-                if ( response.data.count) {
-                  const getScannedEmailData = {
-                    page: currentPage,
-                    linked_email: linked_email
-                  }
-                  dispatch(getScannedEmails(getScannedEmailData));
-                }
-              }).catch( error => {
-                toast.error(error.data.detail || 'Encountered an error')
-              })
-            }
-          }).catch( error => {
-            toast.error(error.data.detail);
+          dispatch(getRunningTask(linked_email))
+          .then( () => {
+            dispatch(getScannedEmailCount(linked_email))
+            .then( () => {
+              const getScannedEmailData = {
+                page: currentPage,
+                linked_email: linked_email
+              }
+              dispatch(getScannedEmails(getScannedEmailData));
+            })
           })
         })
     }
@@ -98,7 +86,7 @@ const onSubmit = e => {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, currentPage, scanTaskId])
+  }, [navigate, dispatch, user, currentPage])
 
   // Paginate the data table
   const paginate = (currentPage) => {
@@ -111,8 +99,8 @@ const onSubmit = e => {
     return <Spinner />
   }
 
-  if ( isScanning ) {
-    return <ProgressBar task_id={scanTaskId} auth_header={auth_header} setScanTaskId={setscanTaskId} setIsScanning={setIsScanning} />
+  if ( task_id ) {
+    return <ProgressBar auth_header={auth_header} setIsScanning={setIsScanning} />
   }
 
   return (
