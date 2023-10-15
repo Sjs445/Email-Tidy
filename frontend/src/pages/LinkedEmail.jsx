@@ -25,14 +25,9 @@ function LinkedEmail() {
 
   const [currentPage, setCurrentPage] = useState(0);
   const [scannedEmailCount, setScannedEmailCount] = useState(0);
-  const [scanTaskId, setscanTaskId] = useState(null);
-  const [isScanning, setIsScanning] = useState(false);
+  const [scanningDone, setScanningDone] = useState(false);
 
   const [formData, setFormData ] = useState([]);
-
-  const auth_header = {
-    Authorization: `Bearer ${user}`
-  };
 
   const onChange = (e) => {
     if ( e.target.checked ) {
@@ -86,7 +81,7 @@ const onSubmit = e => {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, currentPage])
+  }, [navigate, dispatch, user, currentPage, scanningDone])
 
   // Paginate the data table
   const paginate = (currentPage) => {
@@ -100,7 +95,7 @@ const onSubmit = e => {
   }
 
   if ( task_id ) {
-    return <ProgressBar auth_header={auth_header} setIsScanning={setIsScanning} />
+    return <ProgressBar setScanningDone={setScanningDone} />
   }
 
   return (
@@ -170,8 +165,6 @@ const onSubmit = e => {
         <ScanEmailForm
         linked_email_id={params.id}
         setScannedEmailCount={setScannedEmailCount}
-        setscanTaskId={setscanTaskId}
-        setIsScanning={setIsScanning}
         />
       </div>
     )}

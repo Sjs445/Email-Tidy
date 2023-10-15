@@ -5,7 +5,7 @@ import {toast} from 'react-toastify';
 import { scanLinkedEmail, reset} from '../features/scanned_emails/scannedEmailSlice';
 
 
-function ScanEmailForm({linked_email_id, setScannedEmailCount, setscanTaskId, setIsScanning}) {
+function ScanEmailForm({linked_email_id, setScannedEmailCount}) {
     const dispatch = useDispatch();
 
     const [formData, setFormData ] = useState({
@@ -31,7 +31,6 @@ function ScanEmailForm({linked_email_id, setScannedEmailCount, setscanTaskId, se
     
         const scanEmailData = { how_many, linked_email_id };
 
-        setIsScanning(true);
         setScannedEmailCount(how_many);
 
         dispatch(scanLinkedEmail(scanEmailData));

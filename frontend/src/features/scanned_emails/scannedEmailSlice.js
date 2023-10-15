@@ -4,6 +4,8 @@ import scannedEmailService from './scannedEmailService';
 const initialState = {
     scanned_emails: [],
     task_id: null,
+    task_status: {},
+    progress: {},
     scanned_email_count: 0,
     isError: false,
     isSuccess: false,
@@ -80,6 +82,54 @@ export const getScannedEmailCount = createAsyncThunk('scanned_emails/getScannedE
     }
 });
 
+// Get the scanned email task status by task id
+export const getTaskStatus = createAsyncThunk('scanned_emails/getTaskStatus', async (task_id, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
+        return await scannedEmailService.getTaskStatus(task_id, token);
+
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Update the task_status based on the state
+export const updateTaskStatus = createAsyncThunk('scanned_emails/updateTaskStatus', async (_, thunkAPI) => {
+    try {
+        const task_status = thunkAPI.getState().scanned_email.task_status;
+        const progress = thunkAPI.getState().scanned_email.progress;
+
+        if ( task_status.state === 'PROGRESS') {
+            const total = task_status.details.total;
+            const current = task_status.details.current;
+            const percent = (current/total) * 100;
+
+            // Round to the nearest tenth
+            const rounded = +(Math.round(percent + "e+2")  + "e-2");
+            return { filled: rounded }
+        }
+        else if ( task_status.state === 'FAILURE' ) {
+            throw "An error occurred while scanning your inbox";
+        }
+        else if ( task_status.state === 'SUCCESS' ) {
+            return { filled: 100 };
+        }
+        else {
+            const wait_attempts = progress.wait_attempts ? progress.wait_attempts + 1 : 1;
+            return { filled: 0, wait_attempts: wait_attempts };
+        }
+    } catch (error) {
+        return thunkAPI.rejectWithValue(error);
+    }
+});
+
 export const scannedEmailSlice = createSlice({
     name: 'scanned_email',
     initialState,
@@ -149,6 +199,26 @@ export const scannedEmailSlice = createSlice({
             state.scanned_email_count = action.payload
         })
         .addCase(getScannedEmailCount.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(getTaskStatus.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.task_status = action.payload
+        })
+        .addCase(getTaskStatus.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(updateTaskStatus.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.progress = action.payload
+        })
+        .addCase(updateTaskStatus.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

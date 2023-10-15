@@ -403,13 +403,13 @@ h3 {
 	overflow: hidden;
 	width: 350px;
 	height: 35px;
+  margin: 25px;
 	border-radius: 5px;
 	background-color: #eee;
 }
 
 .progressPercent{
 	font-weight: 600;
-	font-family:'Franklin Gothic Medium';
 	position: absolute;
 	left: 50%;
 	top: 50%;
