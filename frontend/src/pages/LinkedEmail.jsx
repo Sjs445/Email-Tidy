@@ -1,10 +1,8 @@
-import axios from 'axios';
-import {useState} from 'react';
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, scanLinkedEmail, unsubscribeFromLinks, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, unsubscribeFromLinks, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
@@ -19,14 +17,15 @@ function LinkedEmail() {
   const params = useParams();
   const [ searchParams ] = useSearchParams();
   const linked_email = searchParams.get("linked_email");
+  let page_param = parseInt(searchParams.get("page"), 10);
+
+  // Can't have a negative page or a page that's not a number.
+  const page = !isNaN(page_param) ? ( page_param < 0 ? 0 : page_param ) : 0;
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, task_id, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { scanned_emails, task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const [scannedEmailCount, setScannedEmailCount] = useState(0);
   const [scanningDone, setScanningDone] = useState(false);
-
   const [formData, setFormData ] = useState([]);
 
   const onChange = (e) => {
@@ -37,21 +36,21 @@ function LinkedEmail() {
     }
   };
 
-const onSubmit = e => {
-  e.preventDefault();
+  const onSubmit = e => {
+    e.preventDefault();
 
-  if ( formData.length == 0 ) {
-    return toast.error("No emails selected");
-  }
+    if ( formData.length == 0 ) {
+      return toast.error("No emails selected");
+    }
 
-  const unsubscribeData = {
-    linked_email_address: linked_email,
-    scanned_email_ids: formData,
-    page: currentPage,
-  }
+    const unsubscribeData = {
+      linked_email_address: linked_email,
+      scanned_email_ids: formData,
+      page: page,
+    }
 
-  dispatch(unsubscribeFromLinks(unsubscribeData));
-  setFormData([]);
+    dispatch(unsubscribeFromLinks(unsubscribeData));
+    setFormData([]);
   };
 
   
@@ -62,18 +61,14 @@ const onSubmit = e => {
       navigate('/login');
     } else {
       dispatch(test_token())
+        .then( () => dispatch(getRunningTask(linked_email)))
+        .then( () => dispatch(getScannedEmailCount(linked_email)) )
         .then( () => {
-          dispatch(getRunningTask(linked_email))
-          .then( () => {
-            dispatch(getScannedEmailCount(linked_email))
-            .then( () => {
-              const getScannedEmailData = {
-                page: currentPage,
-                linked_email: linked_email
-              }
-              dispatch(getScannedEmails(getScannedEmailData));
-            })
-          })
+          const getScannedEmailData = {
+            page: page,
+            linked_email: linked_email
+          }
+          dispatch(getScannedEmails(getScannedEmailData));
         })
     }
 
@@ -81,14 +76,10 @@ const onSubmit = e => {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, currentPage, scanningDone])
+  }, [navigate, dispatch, user, page, scanningDone]);
 
-  // Paginate the data table
-  const paginate = (currentPage) => {
-    setCurrentPage(currentPage);
-    setFormData([]);
-  }
-  const seenCount = 10 * ( currentPage + 1 );
+  // Tells us how many scanned emails from this page we've seen
+  const seenCount = 10 * ( page + 1 );
 
   if ( isLoading ) {
     return <Spinner />
@@ -147,25 +138,36 @@ const onSubmit = e => {
     </tbody>
     </table>
 
-    {/* TODO: Add number links to go directly to a page */}
+    {/* TODO: Add number links to go directly to a page. */}
 
     <div style={{display: 'flex', justifyContent: 'space-between'}}>
+
     {/* Don't allow someone to go to the previous page if we're on page 0*/}
-    {currentPage === 0 ? <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : <button className='btn btn-prev' onClick={ () => paginate(currentPage-1)}>&laquo; Prev Page</button> }
+    { page === 0 ? 
+      <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : 
+      <button className='btn btn-prev' type="button" onClick={ () => {
+        setFormData([]);
+        navigate(`/linked_email/${params.id}?linked_email=${linked_email}&page=${page - 1}`)
+      }
+      }>&laquo; Prev Page</button>
+    }
 
     {/* Don't allow someone to go to the next page if we're at the max count of emails */}
-    { seenCount < scannedEmailCount  ? <button className='btn btn-next' onClick={ () => paginate(currentPage+1)}>Next Page &raquo;</button> : <button className='btn btn-next' disabled>Next Page &raquo;</button>  }
+    { seenCount < scanned_email_count  ?
+      <button className='btn btn-next' type="button" onClick={ () => {
+        setFormData([]);
+        navigate(`/linked_email/${params.id}?linked_email=${linked_email}&page=${page + 1}`)
+      }
+      }>Next Page &raquo;</button> : <button className='btn btn-next' disabled>Next Page &raquo;</button>
+    }
     </div>
-    
+  
     <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe</button>
     </form>
     ) : (
       <div>
         <h3>No scanned emails found.</h3>
-        <ScanEmailForm
-        linked_email_id={params.id}
-        setScannedEmailCount={setScannedEmailCount}
-        />
+        <ScanEmailForm linked_email_id={params.id} />
       </div>
     )}
     

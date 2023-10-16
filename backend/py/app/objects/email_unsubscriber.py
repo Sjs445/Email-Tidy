@@ -121,7 +121,7 @@ class EmailUnsubscriber:
         return domain
 
     def get_unsubscribe_links_from_inbox(
-        self, linked_email_id: int, user_id: int, how_many: int = None, order_by: str = "desc"
+        self, linked_email_id: int, user_id: int
     ) -> List[dict]:
         """Iterate through the Inbox looking through the email body for
         words in `self.UNSUBSCRIBE_KEYWORDS`.
@@ -131,10 +131,6 @@ class EmailUnsubscriber:
         Args:
             linked_email_id (int): The id of the linked email
             user_id (int): The user id of the actor
-            how_many (int, optional): Number of emails to fetch from inbox descending.
-                Defaults to all emails in the Inbox.
-            order_by (str, optional): Method of getting the emails, i.e. 'desc', 'asc'.
-                Defaults to 'desc'.
 
         Returns:
             List[dict]: A list of data describing the emails scanned in this format.
@@ -148,14 +144,6 @@ class EmailUnsubscriber:
                     ...
                 ]
         """
-
-        # Throttle to 30 emails at once.
-        # TODO make this a background task to allow for scanning more emails.
-        if how_many > 30:
-            raise HTTPException(
-                status_code=400,
-                detail="Error you can not scan more than 30 emails at a time"
-            )
 
         # Readonly does not mark emails as SEEN
         status, messages = self.imap.select("INBOX", readonly=True)
@@ -174,39 +162,19 @@ class EmailUnsubscriber:
 
         number_of_emails = int(messages[0])
 
-        # set how we fetch and order getting the emails.
-        range_params: tuple = ()
-        if order_by == "desc":
-            how_many = how_many or 0
-            range_params = (number_of_emails, number_of_emails - how_many, -1)
-        elif order_by == "asc":
-            how_many = how_many or number_of_emails
-            range_params = (0, how_many)
-        else:
-            how_many = how_many or number_of_emails
-            range_params = (how_many, 0, -1)
-
-        # We can't fetch more emails than exist in the Inbox.
-        if how_many > number_of_emails:
-            raise HTTPException(
-                status_code=400,
-                detail="how_many can't be greater than total number of emails in Inbox:"
-                f" {number_of_emails}",
-            )
+        # Fetch and scan emails by descending, that is the top of the inbox to the end.
+        range_params = (number_of_emails, 0, -1)
 
         # Hand off the work to celery and return the job_id
-        task = scan_emails.delay(self.email_type, linked_email_id, user_id, range_params, how_many)
+        task = scan_emails.delay(self.email_type, linked_email_id, user_id, range_params)
         return task.task_id
 
-    def _do_scan_emails(self, task: Task, range_params: tuple, how_many: int, db: Session ) -> int:
+    def _do_scan_emails(self, task: Task, range_params: tuple, db: Session ) -> int:
         """Scan the emails in the inbox.
-        The reason this is a static method is because this method is called from the celery worker file.
-        This allows us to have access to the task param and self.
 
         Args:
             task (Task): The celery task object
             range_params (tuple): The range params used to fetch emails from the inbox
-            how_many (int): Number of emails to scan
             db (Session): The db session
 
         Raises:
@@ -227,6 +195,7 @@ class EmailUnsubscriber:
         # print("Fetching emails...")
         current_iteration = 0
         scanned_emails = 0
+        total_emails = range_params[0]
 
         for i in range(*range_params):
             response, msg = self.imap.fetch(str(i), "(RFC822)")
@@ -257,7 +226,7 @@ class EmailUnsubscriber:
                 state='PROGRESS',
                 meta={
                     'current': current_iteration,
-                    'total': how_many,
+                    'total': total_emails,
                 }
             )
             current_iteration += 1

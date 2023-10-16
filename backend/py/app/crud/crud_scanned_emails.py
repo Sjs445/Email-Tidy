@@ -60,8 +60,19 @@ class CRUDScannedEmails(
                 status_code=400,
                 detail=f"Could not login for linked email '{linked_email.email}'",
             )
+        
+        # TODO: Currently our logic is create 1 celeryworker to scan the entire inbox.
+        # This takes way too long when a user has thousands of emails. Instead, let's divide the work
+        # into multiple celery tasks per linked email. This should in theory speed up the time it takes
+        # to san an entire user's inbox.
+        # 1. Change the linked_email task_id column to an array of task ids.
+        # 2. When the front-end makes a request to scan emails allow the backend to check how many emails
+        #      a user has, then divide up the work into a number of taskworkers scanning seperate parts of
+        #      a user's inbox.
+        # 3. To get the scan progress change the backend to accept a list of task_ids instead of just one
+        #      and assemble the tasks states into one.
         task_id = email_unsubscriber.get_unsubscribe_links_from_inbox(
-            linked_email_id=linked_email.id, user_id=user_id, how_many=obj_in.how_many
+            linked_email_id=linked_email.id, user_id=user_id,
         )
         return task_id
 

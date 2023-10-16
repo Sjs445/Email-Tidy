@@ -14,16 +14,13 @@ from app.database.database import SessionLocal
 from app.models.linked_emails import LinkedEmails
 from app.objects.email_unsubscriber import EmailUnsubscriber
 
-from sqlalchemy.orm import Session
 
 argParser = argparse.ArgumentParser(prog="Debug Scanned Emails", description="Allows a user to debug scanned emails, for internal use")
 argParser.add_argument("-l", "--linked_email", help="the linked email to test on", required=True)
-argParser.add_argument("--how_many", help="the number of emails to scan", default=10)
 
 args = argParser.parse_args()
 
 linked_email = args.linked_email
-how_many = args.how_many
 
 class MockTask:
     """A mock task class to simulate updating the celery state object
@@ -76,7 +73,8 @@ try:
     
     number_of_emails = int(messages[0])
 
-    range_params = (number_of_emails, number_of_emails - how_many, -1)
+    # Scan ALL emails.
+    range_params = (number_of_emails, 0, -1)
     
     # Scan emails for spam
     # TODO: This script actually scans emails and adds them to the scanned_email/unsubscribe_links table.
@@ -85,7 +83,6 @@ try:
     spam_emails_found = email_unsubscriber._do_scan_emails(
         task=task,
         range_params=range_params,
-        how_many=how_many,
         db=db,
     )
 

@@ -12,7 +12,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user, isSuccess } = useSelector( (state) => state.auth );
+  const { user } = useSelector( (state) => state.auth );
   const { linked_emails, isLoading, isError, message } = useSelector( (state) => state.email)
 
   // If there's no user token send them to the login page.

@@ -17,11 +17,12 @@ celery.conf.result_backend = settings.CELERY_RESULT_BACKEND
 
 
 @celery.task(name="scan_emails", bind=True)
-def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_params: tuple, how_many: int) -> int:
+def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_params: tuple) -> int:
     """A task method for EmailUnsubscriber._do_scan_emails
 
     Args:
-        email_unsubscriber (EmailUnsubscriber): The email unsubscriber instance
+        domain (str): The email domain
+        linked_email_id (int): The linked email id to scan
         range_params (tuple): The range params to fetch emails from the inbox
         db (Session): The db session
 
@@ -64,7 +65,6 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
         spam_emails_found = email_unsubscriber._do_scan_emails(
             task=self,
             range_params=range_params,
-            how_many=how_many,
             db=db,
         )
     
