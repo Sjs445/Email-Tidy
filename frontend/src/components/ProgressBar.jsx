@@ -2,9 +2,10 @@ import { useEffect} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { getTaskStatus, reset, updateTaskStatus } from '../features/scanned_emails/scannedEmailSlice';
 
-function ProgressBar({setScanningDone}) {
+// This component is shared by scanned tasks and unsubscribe tasks. Note the ternary statements.
+function ProgressBar({setScanningDone, linked_email}) {
     
-    const { task_id, progress } = useSelector( (state) => state.scanned_email);
+    const { scan_task_id, unsubscribe_task_id, progress } = useSelector( (state) => state.scanned_email);
 
     const filled = progress.filled ? progress.filled : 0;
 
@@ -12,7 +13,7 @@ function ProgressBar({setScanningDone}) {
 
 	useEffect(() => {
         if ( filled < 100 ) {
-            dispatch(getTaskStatus(task_id))
+            dispatch(getTaskStatus(scan_task_id ? scan_task_id : unsubscribe_task_id))
                 .then( () => {
                     setTimeout( () => dispatch(updateTaskStatus()), 1000);
                 });
@@ -23,7 +24,11 @@ function ProgressBar({setScanningDone}) {
 	},[progress, dispatch])
   return (
 	  <section className='form'>
-        <h1>Scanning emails</h1>
+        { scan_task_id ? 
+          <h1>Scanning emails for {linked_email}</h1>
+           : <h1>Unsubscribing from all emails for {linked_email}</h1>
+        }
+        <p>This may take a while. Feel free to close this page and come back later.</p>
 		  <div className="progressbar">
 			  <div style={{
 				  height: "100%",

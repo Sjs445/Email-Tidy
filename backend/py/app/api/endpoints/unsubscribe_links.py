@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app import crud, models, schemas
+from app import crud, models
 from app.api.deps import get_current_user
 from app.database.database import get_db
-from app.schemas.unsubscribe_links import UnsubscribeEmail
+from app.schemas.unsubscribe_links import UnsubscribeEmail, UnsubscribeFromAll
 
 router = APIRouter()
 
@@ -62,5 +62,30 @@ def unsubscribe(
             linked_email_address=unsub_info.linked_email_address,
             user_id=user.id,
             page=unsub_info.page,
+        )
+    }
+
+@router.post("/unsubscribe_from_all")
+def unsubscribe_from_all(
+    *,
+    unsub_info: UnsubscribeFromAll,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Unsubscribe from all emails associated with this linked email address.
+
+    Args:
+        unsub_info (UnsubscribeFromAll): Request params, includes just linked_email_address.
+        db (Session): The db session. Defaults to Depends(get_db).
+        user (models.User): The session user. Defaults to Depends(get_current_user).
+
+    Returns:
+        dict: The task id
+    """
+    return {
+        "unsubscribe_task_id": crud.unsubscribe_links.unsubscribe_from_all(
+            db=db,
+            linked_email_address=unsub_info.linked_email_address,
+            user_id=user.id,
         )
     }

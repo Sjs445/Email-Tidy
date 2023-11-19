@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, unsubscribeFromLinks, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, unsubscribeFromLinks, unsubscribeFromAll, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
@@ -23,7 +23,7 @@ function LinkedEmail() {
   const page = !isNaN(page_param) ? ( page_param < 0 ? 0 : page_param ) : 0;
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { scanned_emails, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
 
   const [scanningDone, setScanningDone] = useState(false);
   const [formData, setFormData ] = useState([]);
@@ -36,6 +36,7 @@ function LinkedEmail() {
     }
   };
 
+  // Unsubscribe from selected emails
   const onSubmit = e => {
     e.preventDefault();
 
@@ -53,6 +54,16 @@ function LinkedEmail() {
     setFormData([]);
   };
 
+  // Unsubscribe from all emails
+  const unsubFromAll = (e) => {
+    e.preventDefault();
+
+    const unsubscribeData = {
+      linked_email_address: linked_email,
+    }
+
+    dispatch(unsubscribeFromAll(unsubscribeData));
+  };
   
   // If there's no user token send them to the login page.
   // If the token exists verify it's a valid token before fetching for linked emails.
@@ -85,8 +96,8 @@ function LinkedEmail() {
     return <Spinner />
   }
 
-  if ( task_id ) {
-    return <ProgressBar setScanningDone={setScanningDone} />
+  if ( scan_task_id || unsubscribe_task_id ) {
+    return <ProgressBar setScanningDone={setScanningDone} linked_email={linked_email} />
   }
 
   return (
@@ -99,6 +110,7 @@ function LinkedEmail() {
     <section>
     {scanned_emails.length > 0 ? (
       <form onSubmit={onSubmit}>
+      <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
       <table className='content-table'>
         <thead>
           <tr>

@@ -6,4 +6,5 @@ from .unsubscribe_links import (
     FetchUnsubscribeLinks,
     UnsubscribeEmailsCreate,
     UnsubscribeEmailUpdate,
+    UnsubscribeFromAll,
 )

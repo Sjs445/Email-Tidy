@@ -1,7 +1,10 @@
+import requests
+
 from app.database.database import SessionLocal
 from app.config import security
 from app.config.config import settings
 from app.models.linked_emails import LinkedEmails
+from app.models.unsubscribe_links import UnsubscribeLinks, UnsubscribeStatus
 from app.objects.email_unsubscriber import EmailUnsubscriber
 
 from celery import Celery
@@ -41,12 +44,13 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
             )
             .first()
         )
-        linked_email.task_id = self.request.id
-        db.commit()
 
         if not linked_email:
             raise Exception(f"Could not find linked email {linked_email_id}")
-        
+
+        linked_email.scan_task_id = self.request.id
+        db.commit()
+
         domain = EmailUnsubscriber.get_domain_from_email(
             email_address=linked_email.email
         )
@@ -69,25 +73,101 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
         )
     
     finally:
-        remove_task_id_from_linked_email(db, linked_email_id)
+        remove_task_id_from_linked_email(db, linked_email_id, 'scan')
         del email_unsubscriber
         db.close()
 
     return spam_emails_found
 
+@celery.task(name="unsubscribe_from_all", bind=True)
+def unsubscribe_from_all(self, linked_email_id: int, user_id: int) -> int:
+    """Unsubscribe from all emails associated with this linked email address.
 
-def remove_task_id_from_linked_email(db: Session, linked_email_id: int):
+    Args:
+        linked_email_id (int): The linked email address
+        user_id (int): the session user id
+
+    Returns:
+        int: The number of email unsubscribed from
+    """
+
+    db = SessionLocal()
+
+    try:
+        # Get the linked_email from the db
+        linked_email = (
+            db.query(LinkedEmails)
+            .filter(
+                LinkedEmails.id == linked_email_id,
+                LinkedEmails.user_id == user_id,
+            )
+            .first()
+        )
+
+        if not linked_email:
+            raise Exception(f"Could not find linked email {linked_email_id}")
+
+        linked_email.unsubscribe_task_id = self.request.id
+        db.commit()
+
+        links = (
+            db.query(UnsubscribeLinks)
+            .filter(
+                UnsubscribeLinks.linked_email_address == linked_email.email,
+                UnsubscribeLinks.unsubscribe_status == UnsubscribeStatus.pending,
+            )
+            .all()
+        )
+
+        total_links = len(links)
+
+        for idx, link in enumerate(links):
+
+            try:
+                res = requests.get(link.link, timeout=5)
+                # TODO: Do something with the res.text. We could possibly parse it
+                # to see if there is another 'click' needed to unsubscribe.
+                if res.status_code == 200:
+                    link.unsubscribe_status = UnsubscribeStatus.success
+                else:
+                    link.unsubscribe_status = UnsubscribeStatus.failure
+            except:
+                link.unsubscribe_status = UnsubscribeStatus.failure
+
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': idx,
+                    'total': total_links
+                }
+            )
+
+        db.commit()
+    
+    finally:
+        remove_task_id_from_linked_email(db, linked_email_id, 'unsubscribe')
+        db.close()
+
+def remove_task_id_from_linked_email(db: Session, linked_email_id: int, job_type: str):
     """Remove the task_id from a linked_email object.
     This is run when a task has ended or when the task has failed.
 
     Args:
         db (Session): The db session
         linked_email_id (int): The linked_email_id to update
+        job_type (str): Must be scan or unsubscribe
     """
     linked_email = (
         db.query(LinkedEmails)
         .filter(LinkedEmails.id == linked_email_id)
         .first()
     )
-    linked_email.task_id = None
+
+    if job_type == 'scan':
+        linked_email.scan_task_id = None
+    elif job_type == 'unsubscribe':
+        linked_email.unsubscribe_task_id = None
+    else:
+        raise Exception(f"Unkown job_type {job_type}")
+
     db.commit()

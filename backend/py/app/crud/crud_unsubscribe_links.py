@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
 from app import crud
+from app import celery_worker
 from app.crud.base import CRUDBase
 from app.models.linked_emails import LinkedEmails
 from app.models.unsubscribe_links import UnsubscribeLinks, UnsubscribeStatus
@@ -76,6 +77,12 @@ class CRUDUnsubscribeLinks(
         Returns:
             list: The updated unsubscribe links
         """
+
+        # Don't allow unsubscribing this way for more than 10 scanned_email_ids at a time.
+        # That should be done using celery.
+        if len(scanned_email_ids) >= 10:
+            raise HTTPException(status_code=400, detail="Can't unsubscribe that many emails at once. Use unsubscribe from all function.")
+
         linked_email = crud.linked_email.get_single_by_user_id(
             db, user_id=user_id, linked_email_address=linked_email_address
         )
@@ -90,13 +97,15 @@ class CRUDUnsubscribeLinks(
         )
 
         for link in links:
-            res = requests.get(link.link)
-
-            # TODO: Do something with the res.text. We could possibly parse it
-            # to see if there is another 'click' needed to unsubscribe.
-            if res.status_code == 200:
-                link.unsubscribe_status = UnsubscribeStatus.success
-            else:
+            try:
+                res = requests.get(link.link, timeout=5)
+                # TODO: Do something with the res.text. We could possibly parse it
+                # to see if there is another 'click' needed to unsubscribe.
+                if res.status_code == 200:
+                    link.unsubscribe_status = UnsubscribeStatus.success
+                else:
+                    link.unsubscribe_status = UnsubscribeStatus.failure
+            except:
                 link.unsubscribe_status = UnsubscribeStatus.failure
 
         db.commit()
@@ -108,6 +117,27 @@ class CRUDUnsubscribeLinks(
             linked_email=linked_email.email,
             page=page,
         )
+
+    def unsubscribe_from_all(self, db: Session, *, linked_email_address: str, user_id: int) -> str:
+        """Unsubscribe from all emails associated with a linked email address.
+        Creates a celery task to do the actual work and returns the task_id back to the front end.
+
+        Args:
+            db (Session): The db session
+            linked_email_address (str): The linked email address
+            user_id (int): The session user id
+
+        Returns:
+            str: The unsubscribe task id
+        """
+
+        linked_email = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email_address
+        )
+
+        # Hand off the work to celery and return the task id
+        task = celery_worker.unsubscribe_from_all.delay(linked_email.id, user_id)
+        return task.task_id
 
 
 unsubscribe_links = CRUDUnsubscribeLinks(UnsubscribeLinks)

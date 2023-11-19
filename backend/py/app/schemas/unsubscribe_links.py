@@ -24,6 +24,9 @@ class UnsubscribeEmail(BaseModel):
     linked_email_address: EmailStr
     page: int = 0
 
+class UnsubscribeFromAll(BaseModel):
+    linked_email_address: EmailStr
+
 
 # Placeholder
 class UnsubscribeEmailUpdate(BaseModel):

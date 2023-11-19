@@ -3,7 +3,8 @@ import scannedEmailService from './scannedEmailService';
 
 const initialState = {
     scanned_emails: [],
-    task_id: null,
+    scan_task_id: null,
+    unsubscribe_task_id: null,
     task_status: {},
     progress: {},
     scanned_email_count: 0,
@@ -100,6 +101,23 @@ export const getTaskStatus = createAsyncThunk('scanned_emails/getTaskStatus', as
     }
 });
 
+// Unsubscribe from all emails
+export const unsubscribeFromAll = createAsyncThunk('scanned_emails/unsubscribeFromAll', async( unsubscribeData, thunkAPI ) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early.
+        if( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
+        return await scannedEmailService.unsubscribeFromAll(unsubscribeData, token);
+    } catch ( error ) {
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
 // Update the task_status based on the state
 export const updateTaskStatus = createAsyncThunk('scanned_emails/updateTaskStatus', async (_, thunkAPI) => {
     try {
@@ -144,7 +162,7 @@ export const scannedEmailSlice = createSlice({
          .addCase(scanLinkedEmail.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.task_id = action.payload
+            state.scan_task_id = action.payload
          })
          .addCase(scanLinkedEmail.rejected, (state, action) => {
             state.isLoading = false
@@ -177,13 +195,27 @@ export const scannedEmailSlice = createSlice({
             state.isError = true
             state.message = action.payload
         })
+        .addCase(unsubscribeFromAll.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(unsubscribeFromAll.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.unsubscribe_task_id = action.payload
+        })
+        .addCase(unsubscribeFromAll.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
         .addCase(getRunningTask.pending, (state) => {
             state.isLoading = true
         })
         .addCase(getRunningTask.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.task_id = action.payload
+            state.scan_task_id = action.payload.scan_task_id
+            state.unsubscribe_task_id = action.payload.unsubscribe_task_id
         })
         .addCase(getRunningTask.rejected, (state, action) => {
             state.isLoading = false

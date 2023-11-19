@@ -117,10 +117,10 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         db.refresh(db_obj)
         return db_obj
     
-    def get_task_id(
+    def get_task_ids(
         self, db: Session, *, linked_email_address: str, user_id: int,
     ) -> dict:
-        """Get the task id for this linked email address.
+        """Get the task ids for this linked email address.
 
         Args:
             db (Session): The db session
@@ -128,12 +128,14 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
             user_id (int): The session user_id
 
         Returns:
-            dict: The scan status information
+            dict: The task ids
         """
         linked_email = self.get_single_by_user_id(db, user_id=user_id, linked_email_address=linked_email_address)
-        task_id = linked_email.task_id
 
-        return task_id
+        return {
+            'scan_task_id': linked_email.scan_task_id,
+            'unsubscribe_task_id': linked_email.unsubscribe_task_id,
+        }
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)

@@ -25,7 +25,10 @@ class LinkedEmails(Base):
     insert_ts = Column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
-    task_id = Column(
+    scan_task_id = Column(
+        String, nullable=True,
+    )
+    unsubscribe_task_id = Column(
         String, nullable=True,
     )
     user_id = Column(

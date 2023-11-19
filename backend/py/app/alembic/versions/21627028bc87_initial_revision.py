@@ -51,8 +51,11 @@ def upgrade() -> None:
             server_default=sa.sql.func.now(),
         ),
         sa.Column(
-            "task_id",
+            "scan_task_id",
             sa.String(), nullable=True,
+        ),
+        sa.Column(
+            "unsubscribe_task_id", nullable=True,
         ),
         sa.ForeignKeyConstraint(
             ["user_id"],

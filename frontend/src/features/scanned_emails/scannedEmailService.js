@@ -48,6 +48,19 @@ const unsubscribeFromLinks = async ( unsubscribeData, token ) => {
     return response.data.scanned_emails;
 }
 
+// Unsubscribe from ALL links
+const unsubscribeFromAll = async ( unsubscribeData, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.post("/unsubscribe_links/unsubscribe_from_all", unsubscribeData, config);
+
+    return response.data.unsubscribe_task_id;
+}
+
 // Get a running task by linked email
 const getRunningTask = async ( linked_email, token ) => {
     const config = {
@@ -58,7 +71,7 @@ const getRunningTask = async ( linked_email, token ) => {
 
     const response = await axios.get(`/linked_emails/tasks/${linked_email}`, config);
 
-    return response.data.task;
+    return response.data;
 }
 
 // Get a count of scanned emails
@@ -94,6 +107,7 @@ const scannedEmailService = {
     getTaskStatus,
     getRunningTask,
     unsubscribeFromLinks,
+    unsubscribeFromAll,
 }
 
 export default scannedEmailService
