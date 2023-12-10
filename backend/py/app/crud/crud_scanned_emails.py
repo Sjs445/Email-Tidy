@@ -75,6 +75,59 @@ class CRUDScannedEmails(
             linked_email_id=linked_email.id, user_id=user_id,
         )
         return task_id
+    
+    def get_senders_by_linked_email(
+            self,
+            db: Session,
+            *,
+            user_id: int,
+            linked_email: str,
+            page: int = 0,
+    ) -> List[dict]:
+        """Get a list of email senders that were scanned by linked_email.
+
+        Args:
+            db (Session): The db session
+            user_id (int): The session user
+            linked_email (str): The linked_email
+            page (int, optional): The page to fetch. Defaults to 0.
+
+        Returns:
+            List[dict]: The sender data
+        """
+        linked_email = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email
+        )
+
+        # Fetch 10 at a time
+        offset = 0
+
+        if page:
+            offset = page * 10
+
+        bind = {"linked_email": linked_email.email, "offset": offset}
+
+        results = db.execute(
+            f"""SELECT DISTINCT email_from, COUNT(*) AS scanned_email_count, COUNT(ul.id) AS unsubscribe_link_count, COUNT(*) OVER() as total_count
+                    FROM scanned_emails
+                LEFT OUTER JOIN unsubscribe_links AS ul
+                    ON ul.scanned_email_id = scanned_emails.id
+                WHERE scanned_emails.linked_email_address = :linked_email
+                GROUP BY email_from
+                LIMIT 10
+                OFFSET :offset
+            """,
+            bind
+        ).all()
+        return [
+            {
+                "email_from": res[0],
+                "scanned_email_count": res[1],
+                "unsubscribe_link_count": res[2],
+                "total_count": res[3],
+            }
+            for res in results
+        ] 
 
     def get_scanned_emails(
         self,
@@ -123,7 +176,7 @@ class CRUDScannedEmails(
 
         # SQL AUDIT: Parameters are passed using bind. SAFE.
         results = db.execute(
-            f"""SELECT se.id, se.email_from, se.subject, se.linked_email_address, COUNT(ul.scanned_email_id) AS link_count, ul.unsubscribe_status
+            f"""SELECT se.id, se.email_from, se.subject, se.linked_email_address, COUNT(ul.scanned_email_id) AS link_count, ul.unsubscribe_status, COUNT(*) OVER() as total_count
                     FROM scanned_emails AS se
                 LEFT OUTER JOIN unsubscribe_links AS ul
                     ON ul.scanned_email_id = se.id
@@ -146,38 +199,10 @@ class CRUDScannedEmails(
                 "linked_email_address": res[3],
                 "link_count": res[4],
                 "unsubscribe_status": res[5],
+                "total_count": res[6],
             }
             for res in results
         ]
-
-    def count_scanned_emails(
-        self,
-        db: Session,
-        *,
-        user_id: int,
-        linked_email: str,
-    ) -> int:
-        """Count the number of scanned emails for this linked email.
-
-        Args:
-            db (Session): The db session.
-            user_id (int): The user_id.
-            linked_email (str): The linked email address.
-
-        Returns:
-            int: The number of scanned emails.
-        """
-        linked_email_obj = crud.linked_email.get_single_by_user_id(
-            db, user_id=user_id, linked_email_address=linked_email
-        )
-
-        count = (
-            db.query(ScannedEmails)
-            .filter(ScannedEmails.linked_email_address == linked_email_obj.email)
-            .count()
-        ) or 0
-
-        return count
     
     def delete_scanned_emails(
             self,

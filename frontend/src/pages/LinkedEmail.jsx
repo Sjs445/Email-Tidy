@@ -2,14 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, unsubscribeFromLinks, unsubscribeFromAll, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
+import { getEmailSenders, unsubscribeFromAll, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
-import UnsubscribeStatus from '../components/UnsubscribeStatus';
 import ScanEmailForm from '../components/ScanEmailForm';
 import ProgressBar from '../components/ProgressBar';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
-// Maybe pass the page number and linked_email to this component as args
+
 function LinkedEmail() {
 
   const navigate = useNavigate();
@@ -17,42 +17,12 @@ function LinkedEmail() {
   const params = useParams();
   const [ searchParams ] = useSearchParams();
   const linked_email = searchParams.get("linked_email");
-  let page_param = parseInt(searchParams.get("page"), 10);
-
-  // Can't have a negative page or a page that's not a number.
-  const page = !isNaN(page_param) ? ( page_param < 0 ? 0 : page_param ) : 0;
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { email_senders, scan_task_id, unsubscribe_task_id, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
 
   const [scanningDone, setScanningDone] = useState(false);
-  const [formData, setFormData ] = useState([]);
-
-  const onChange = (e) => {
-    if ( e.target.checked ) {
-      formData.push(e.target.value);
-    } else {
-      setFormData(formData.filter( (scanned_id) => scanned_id !== e.target.value))
-    }
-  };
-
-  // Unsubscribe from selected emails
-  const onSubmit = e => {
-    e.preventDefault();
-
-    if ( formData.length == 0 ) {
-      return toast.error("No emails selected");
-    }
-
-    const unsubscribeData = {
-      linked_email_address: linked_email,
-      scanned_email_ids: formData,
-      page: page,
-    }
-
-    dispatch(unsubscribeFromLinks(unsubscribeData));
-    setFormData([]);
-  };
+  const [page, setPage] = useState(0);
 
   // Unsubscribe from all emails
   const unsubFromAll = (e) => {
@@ -66,20 +36,19 @@ function LinkedEmail() {
   };
   
   // If there's no user token send them to the login page.
-  // If the token exists verify it's a valid token before fetching for linked emails.
+  // If the token exists verify it's a valid token before fetching for email senders.
   useEffect( () => {
     if (!user) {
       navigate('/login');
     } else {
       dispatch(test_token())
         .then( () => dispatch(getRunningTask(linked_email)))
-        .then( () => dispatch(getScannedEmailCount(linked_email)) )
         .then( () => {
-          const getScannedEmailData = {
+          const getEmailSenderData = {
             page: page,
             linked_email: linked_email
           }
-          dispatch(getScannedEmails(getScannedEmailData));
+          dispatch(getEmailSenders(getEmailSenderData));
         })
     }
 
@@ -87,10 +56,11 @@ function LinkedEmail() {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, page, scanningDone]);
+  }, [navigate, dispatch, user, scanningDone]);
 
-  // Tells us how many scanned emails from this page we've seen
+  // Tells us how many email senders from this page we've seen
   const seenCount = 10 * ( page + 1 );
+  const totalSenders = email_senders ? email_senders[0]?.total_count : 0;
 
   if ( isLoading ) {
     return <Spinner />
@@ -103,82 +73,52 @@ function LinkedEmail() {
   return (
     <>
     <section className="heading">
-    <h1>Scanned Emails</h1>
+    <h1>Spam Email Senders</h1>
     <p>{linked_email}</p>
     </section>
     
     <section>
-    {scanned_emails.length > 0 ? (
-      <form onSubmit={onSubmit}>
-      <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
-      <table className='content-table'>
-        <thead>
-          <tr>
-            <th>From</th>
-            <th>Subject</th>
-            <th>Unsubscribe Links Found</th>
-            <th>Unsubscribe</th>
-          </tr>
-        </thead>
-        <tbody>
-        {scanned_emails.slice(0, 10).map( (scanned_email) => (   
-        <tr key={scanned_email.id}>
-            <td>{scanned_email.from}</td>
-            <td>{scanned_email.subject}</td>
-            <td>{scanned_email.link_count}</td>
-            <td>
-            {scanned_email.link_count > 0 ? (
-              scanned_email.unsubscribe_status === 'pending' ? 
-                <div>
-                <label className='checkbox' htmlFor={scanned_email.id}>
-                  <input
-                  className='checkbox__input'
-                  type="checkbox"
-                  id={scanned_email.id}
-                  name={scanned_email.id}
-                  value={scanned_email.id}
-                  onChange={onChange} />
-                  <div className='checkbox__box'></div>
-                  Unsubscribe
-                </label>
-                </div>
-                : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} linked_email={linked_email} />
-            ) : <p>No unsubscribe links found</p>}
-            </td>
+    {email_senders.length > 0 ? (
+    <div>
+      <h3>You may unsubscribe from all spam email senders here or check off individual senders to unsubscribe from</h3>
+    <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
+    <div id="scroll" style={{ height: 500, overflow: "auto" }}>
+    
+    <InfiniteScroll
+      dataLength={email_senders.length}
+      next={ () => {
+        setPage(page+1);
+        dispatch(getEmailSenders({linked_email: linked_email, page: page + 1}));
+       }
+      }
+      hasMore={seenCount < totalSenders}
+      loader={<p>Loading...</p>}
+      scrollableTarget="scroll"
+    >
+      <table className='content-table' >
+      <thead>
+        <tr>
+          <th>From</th>
+          <th>Total Scanned Emails</th>
+          <th>Unsubscribe Links Found</th>
         </tr>
-    ))}
-    </tbody>
-    </table>
-
-    {/* TODO: Add number links to go directly to a page. */}
-
-    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-
-    {/* Don't allow someone to go to the previous page if we're on page 0*/}
-    { page === 0 ? 
-      <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : 
-      <button className='btn btn-prev' type="button" onClick={ () => {
-        setFormData([]);
-        navigate(`/linked_email/${params.id}?linked_email=${linked_email}&page=${page - 1}`)
-      }
-      }>&laquo; Prev Page</button>
-    }
-
-    {/* Don't allow someone to go to the next page if we're at the max count of emails */}
-    { seenCount < scanned_email_count  ?
-      <button className='btn btn-next' type="button" onClick={ () => {
-        setFormData([]);
-        navigate(`/linked_email/${params.id}?linked_email=${linked_email}&page=${page + 1}`)
-      }
-      }>Next Page &raquo;</button> : <button className='btn btn-next' disabled>Next Page &raquo;</button>
-    }
-    </div>
-  
-    <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe</button>
-    </form>
+      </thead>
+      <tbody>
+        {email_senders.map( (email_sender) => (   
+        <tr key={email_sender.email_from}>
+            <td>{email_sender.email_from}</td>
+            <td>{email_sender.scanned_email_count}</td>
+            <td>{email_sender.unsubscribe_link_count}</td>
+        </tr>
+        ))}
+      </tbody>
+      </table>
+    </InfiniteScroll>
+      </div>
+      </div>
     ) : (
       <div>
-        <h3>No scanned emails found.</h3>
+        <h3>No Spam Found</h3>
         <ScanEmailForm linked_email_id={params.id} />
       </div>
     )}

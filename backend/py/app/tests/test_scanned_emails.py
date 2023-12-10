@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from unittest import mock
 from datetime import datetime
 
-from app.crud import crud_user, crud_linked_emails, crud_unsubscribe_links
+from app.crud import crud_user, crud_linked_emails
 from app.main import app
 from app.objects.email_unsubscriber import EmailUnsubscriber
 from app.schemas import LinkedEmailsCreate
@@ -12,7 +12,6 @@ from app.test_utils import (
     generate_auth_header,
     generate_email_message,
 )
-from app.tests.html_emails.basic_promo import basic_promo
 from app.tests.html_emails.general_template import general_template
 
 
@@ -93,7 +92,7 @@ class TestLinkEmail:
         # Fetch the list of scanned emails for page 1
         # it should contain the rest of the scanned emails
         results = self.client.get(
-            "/scanned_emails/1?linked_email=email@yahoo.com",
+            "/scanned_emails/1?linked_email=email@yahoo.com&email_from=spammer@email.com",
             headers=self.auth_header,
         ).json()
         scanned_emails2 = results.get("scanned_emails", [])
@@ -139,3 +138,17 @@ class TestLinkEmail:
         ]
 
         assert results.get("links", []) == expected_unsuscribe_links
+
+        # Fetch a list of email senders
+        results = self.client.get(
+            "/scanned_emails/senders/0?linked_email=email@yahoo.com",
+            headers=self.auth_header,
+        ).json()
+
+        assert results.get("senders", []) == [
+            {
+                "email_from": "spammer@email.com",
+                "scanned_email_count": 20,
+                "unsubscribe_link_count": 20,
+            }
+        ]

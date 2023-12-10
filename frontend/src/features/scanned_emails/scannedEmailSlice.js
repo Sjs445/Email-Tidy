@@ -3,6 +3,7 @@ import scannedEmailService from './scannedEmailService';
 
 const initialState = {
     scanned_emails: [],
+    email_senders: [],
     scan_task_id: null,
     unsubscribe_task_id: null,
     task_status: {},
@@ -31,7 +32,7 @@ export const getScannedEmails = createAsyncThunk('scanned_emails/get', async( ge
         const token = thunkAPI.getState().auth.user;
         return await scannedEmailService.getScannedEmails(getScannedEmailData, token);
     } catch (error) {
-        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -148,6 +149,17 @@ export const updateTaskStatus = createAsyncThunk('scanned_emails/updateTaskStatu
     }
 });
 
+// Get a list of email senders with their number of unsub links and scanned email count
+export const getEmailSenders = createAsyncThunk('scanned_emails/getSenders', async( getEmailSenderData, thunkAPI ) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+        return await scannedEmailService.getEmailSenders(getEmailSenderData, token);
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
 export const scannedEmailSlice = createSlice({
     name: 'scanned_email',
     initialState,
@@ -251,6 +263,16 @@ export const scannedEmailSlice = createSlice({
             state.progress = action.payload
         })
         .addCase(updateTaskStatus.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(getEmailSenders.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.email_senders = [...state.email_senders, ...action.payload]
+        })
+        .addCase(getEmailSenders.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

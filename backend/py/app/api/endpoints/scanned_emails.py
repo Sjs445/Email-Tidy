@@ -32,6 +32,28 @@ def scan_emails(
         )
     }
 
+@router.get("/senders/{page}")
+def get_senders(
+    *,
+    linked_email: str,
+    page: int = 0,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Get a list of senders for this linked email.
+
+    Args:
+        linked_email (str): The linked email to filter by
+        page (int, optional): The page to fetch. Defaults to 0.
+        db (Session): The db session.
+        user (models.User): The session user.
+
+    Returns:
+        dict: A list of email senders that were scanned
+    """
+    return {
+        "senders": crud.scanned_emails.get_senders_by_linked_email(db, user_id=user.id, linked_email=linked_email, page=page)
+    }
 
 @router.get("/{page}")
 def get_scanned_emails(
@@ -61,30 +83,6 @@ def get_scanned_emails(
             user_id=user.id,
             email_from=email_from,
             linked_email=linked_email,
-        )
-    }
-
-
-@router.get("/count/{linked_email}")
-def count_scanned_emails(
-    *,
-    linked_email: str,
-    db: Session = Depends(get_db),
-    user: models.User = Depends(get_current_user),
-) -> dict:
-    """Get a count of the number of scanned emails for this linked email. Used for pagination by the front-end.
-
-    Args:
-        count_email (schemas.CountScannedEmails): The linked email.
-        db (Session): The db session.
-        user (models.User): The session user.
-
-    Returns:
-        dict: The number of scanned emails.
-    """
-    return {
-        "count": crud.scanned_emails.count_scanned_emails(
-            db, user_id=user.id, linked_email=linked_email
         )
     }
 

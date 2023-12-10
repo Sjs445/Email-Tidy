@@ -100,7 +100,21 @@ const getTaskStatus = async ( task_id, token ) => {
     return response.data;
 }
 
+// Get email sender data
+const getEmailSenders = async ( emailSenderData, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.get(`/scanned_emails/senders/${emailSenderData.page}?linked_email=${emailSenderData.linked_email}`, config);
+
+    return response.data.senders;
+}
+
 const scannedEmailService = {
+    getEmailSenders,
     scanLinkedEmail,
     getScannedEmails,
     getScannedEmailCount,
