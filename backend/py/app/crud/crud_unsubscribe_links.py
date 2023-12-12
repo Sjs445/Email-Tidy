@@ -10,6 +10,7 @@ from app import celery_worker
 from app.crud.base import CRUDBase
 from app.models.linked_emails import LinkedEmails
 from app.models.unsubscribe_links import UnsubscribeLinks, UnsubscribeStatus
+from app.models.scanned_emails import ScannedEmails
 from app.schemas.unsubscribe_links import (
     FetchUnsubscribeLinks,
     UnsubscribeEmailsCreate,
@@ -60,16 +61,16 @@ class CRUDUnsubscribeLinks(
         self,
         db: Session,
         *,
-        scanned_email_ids: List[int],
+        email_sender: str,
         linked_email_address: str,
         user_id: int,
         page: int,
     ) -> list:
-        """Unsubscribe from a scanned email
+        """Unsubscribe from a specific email sender
 
         Args:
             db (Session): The db session
-            scanned_email_ids (List[int]): The scanned email ids to unsubscribe from
+            email_sender (List[str]): The email sender to unsubscribe from
             linked_email (str): The linked email address
             user_id (int): The session user id
             page (int): The page we're on. Helps the front-end update scanned email data.
@@ -78,20 +79,19 @@ class CRUDUnsubscribeLinks(
             list: The updated unsubscribe links
         """
 
-        # Don't allow unsubscribing this way for more than 10 scanned_email_ids at a time.
-        # That should be done using celery.
-        if len(scanned_email_ids) >= 10:
-            raise HTTPException(status_code=400, detail="Can't unsubscribe that many emails at once. Use unsubscribe from all function.")
-
         linked_email = crud.linked_email.get_single_by_user_id(
             db, user_id=user_id, linked_email_address=linked_email_address
         )
 
+        # Query for the unsubscribe links by email senders. Only query for unsubscribe links that
+        # are pending.
         links = (
             db.query(UnsubscribeLinks)
+            .join(ScannedEmails, UnsubscribeLinks.scanned_email_id == ScannedEmails.id)
             .filter(
                 UnsubscribeLinks.linked_email_address == linked_email.email,
-                UnsubscribeLinks.scanned_email_id.in_(scanned_email_ids),
+                ScannedEmails.email_from == email_sender,
+                UnsubscribeLinks.unsubscribe_status == UnsubscribeStatus.pending,
             )
             .all()
         )
@@ -107,7 +107,6 @@ class CRUDUnsubscribeLinks(
                     link.unsubscribe_status = UnsubscribeStatus.failure
             except:
                 link.unsubscribe_status = UnsubscribeStatus.failure
-
         db.commit()
 
         # Fetch the list of scanned emails for the front-end to update data

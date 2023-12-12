@@ -2,39 +2,33 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, getEmailSenders, unsubscribeFromLinks, unsubscribeFromAll, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, unsubscribeFromLinks, unsubscribeFromAll, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
 import ScanEmailForm from '../components/ScanEmailForm';
 import ProgressBar from '../components/ProgressBar';
 
-
-function LinkedEmail() {
+// TODO: Make this a page accessible by URL. When someone clicks on an email sender they are navigated here.
+// On this page you should be able to:
+//   1. See scanned emails using infinite scroll.
+//   2. Be able to unsubscribe from this sender.
+//   3. Be able to see the unsubscribe status per scanned email.
+//   4. Be able to click scanned emails to see their unsubscribe links.
+function ScannedEmails() {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const params = useParams();
   const [ searchParams ] = useSearchParams();
   const linked_email = searchParams.get("linked_email");
-  let page_param = parseInt(searchParams.get("page"), 10);
-
-  // Can't have a negative page or a page that's not a number.
-  const page = !isNaN(page_param) ? ( page_param < 0 ? 0 : page_param ) : 0;
+  const email_from   = searchParams.get("email_from");
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, email_senders, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { scanned_emails, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
 
   const [scanningDone, setScanningDone] = useState(false);
-  const [formData, setFormData ] = useState([]);
-
-  const onChange = (e) => {
-    if ( e.target.checked ) {
-      formData.push(e.target.value);
-    } else {
-      setFormData(formData.filter( (scanned_id) => scanned_id !== e.target.value))
-    }
-  };
+  const [page, setPage] = useState(0);
 
   // Unsubscribe from selected emails
   const onSubmit = e => {
@@ -46,30 +40,13 @@ function LinkedEmail() {
 
     const unsubscribeData = {
       linked_email_address: linked_email,
-      scanned_email_ids: formData,
+      email_sender: email_from,
       page: page,
     }
 
     dispatch(unsubscribeFromLinks(unsubscribeData));
     setFormData([]);
   };
-
-  // Unsubscribe from all emails
-  const unsubFromAll = (e) => {
-    e.preventDefault();
-
-    const unsubscribeData = {
-      linked_email_address: linked_email,
-    }
-
-    dispatch(unsubscribeFromAll(unsubscribeData));
-  };
-
-  // Navigate to the desired page
-  const navToPage = (page_number) => {
-    setFormData([]);
-    navigate(`/linked_email/${params.id}?linked_email=${linked_email}&page=${page_number}`)
-  }
   
   // If there's no user token send them to the login page.
   // If the token exists verify it's a valid token before fetching for linked emails.
@@ -202,4 +179,4 @@ function LinkedEmail() {
   )
 }
 
-export default LinkedEmail
+export default ScannedEmails

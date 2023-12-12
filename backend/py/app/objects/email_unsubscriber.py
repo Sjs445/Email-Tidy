@@ -296,7 +296,18 @@ class EmailUnsubscriber:
 
         # Add all unsubscribe links to the unsubscribe_links table
         unsubscribe_link_objs = []
-        for link in unsubscribe_links:
+
+        # Convert to a set and then back to a list to remove duplicate links
+        for link in list(set(unsubscribe_links)):
+
+            # Don't add an unsubscribe link that exists in the database already
+            link_exists = db.execute(
+                "SELECT EXISTS(SELECT 1 FROM unsubscribe_links WHERE link = :link AND linked_email_address = :linked_email_address)",
+                {"link": link, "linked_email_address": linked_email_address}
+            ).scalar()
+            if link_exists:
+                continue
+
             unsubscribe_link_objs.append(
                 UnsubscribeLinks(
                     link=link,

@@ -45,10 +45,10 @@ def unsubscribe(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
-    """Unsubscribe from an email.
+    """Unsubscribe from an email sender.
 
     Args:
-        unsub_info (UnsubscribeEmail): The scanned email id and linked_email
+        unsub_info (UnsubscribeEmail): The sender to unsubscribe from and linked_email
         db (Session): The db session.
         user (models.User): The session user
 
@@ -58,7 +58,7 @@ def unsubscribe(
     return {
         "scanned_emails": crud.unsubscribe_links.unsubscribe(
             db,
-            scanned_email_ids=unsub_info.scanned_email_ids,
+            email_addresses=unsub_info.email_sender,
             linked_email_address=unsub_info.linked_email_address,
             user_id=user.id,
             page=unsub_info.page,

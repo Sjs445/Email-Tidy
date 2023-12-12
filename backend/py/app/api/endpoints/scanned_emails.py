@@ -59,17 +59,17 @@ def get_senders(
 def get_scanned_emails(
     *,
     linked_email: str,
+    email_from: str,
     page: int = 0,
-    email_from: str = None,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
     """Get a paginated list of scanned emails. Only includes a number count of links found for the email.
 
     Args:
-        page (int, optional): The page to fetch. Defaults to 0.
-        email_from (str, optional): Filter scanned_emails by a specific from address.
         linked_email (str): Filter scanned_emails owned by a linked_email address.
+        email_from (str): Filter scanned_emails by a specific from address.
+        page (int, optional): The page to fetch. Defaults to 0.
         db (Session): The db session.
         user (models.User): The session user.
 

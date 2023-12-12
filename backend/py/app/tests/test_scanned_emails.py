@@ -71,7 +71,7 @@ class TestLinkEmail:
 
         # Fetch the list of scanned_emails for page 0
         results = self.client.get(
-            "/scanned_emails/0?linked_email=email@yahoo.com",
+            "/scanned_emails/0?linked_email=email@yahoo.com&email_from=spammer@email.com",
             headers=self.auth_header,
         ).json()
         scanned_emails = results.get("scanned_emails", [])
@@ -80,10 +80,11 @@ class TestLinkEmail:
             {
                 "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 1,
+                "link_count": 1 if i == 0 else 0,
                 "linked_email_address": "email@yahoo.com",
                 "subject": f"Spam Email - {i}",
-                "unsubscribe_status": "pending",
+                "total_count": 20,
+                "unsubscribe_status": "pending" if i == 0 else None
             }
             for i in range(10)
         ]
@@ -101,10 +102,11 @@ class TestLinkEmail:
             {
                 "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 1,
+                "link_count": 0,
                 "linked_email_address": "email@yahoo.com",
                 "subject": f"Spam Email - {i}",
-                "unsubscribe_status": "pending",
+                "unsubscribe_status": None,
+                "total_count": 20,
             }
             for i in range(10, 20)
         ]
@@ -113,14 +115,14 @@ class TestLinkEmail:
         # Fetch the list of scanned emails for page 2
         # it should not contain anymore emails.
         results = self.client.get(
-            "/scanned_emails/2",
+            "/scanned_emails/2?linked_email=email@yahoo.com&email_from=spammer@email.com",
             headers=self.auth_header,
         ).json()
         scanned_emails3 = results.get("scanned_emails", [])
         assert scanned_emails3 == []
 
         # Fetch a list of unsubscribe links for a certain scanned_email_id and linked_email
-        scanned_email_id = scanned_emails2[0].get("id")
+        scanned_email_id = scanned_emails[0].get("id")
         results = self.client.get(
             f"/unsubscribe_links/unsubscribe_links_by_email/{scanned_email_id}/?linked_email=email@yahoo.com",
             headers=self.auth_header,
@@ -149,6 +151,7 @@ class TestLinkEmail:
             {
                 "email_from": "spammer@email.com",
                 "scanned_email_count": 20,
-                "unsubscribe_link_count": 20,
+                "unsubscribe_link_count": 1,
+                "total_count": 1,
             }
         ]

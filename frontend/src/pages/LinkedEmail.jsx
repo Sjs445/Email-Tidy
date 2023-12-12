@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getEmailSenders, unsubscribeFromAll, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
+import { getEmailSenders, unsubscribeFromAll, unsubscribeFromLinks, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import ScanEmailForm from '../components/ScanEmailForm';
@@ -80,7 +80,7 @@ function LinkedEmail() {
     <section>
     {email_senders.length > 0 ? (
     <div>
-      <h3>You may unsubscribe from all spam email senders here or check off individual senders to unsubscribe from</h3>
+      <h3>You may unsubscribe from all spam email senders here or inspect individual senders</h3>
     <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
     <div id="scroll" style={{ height: 500, overflow: "auto" }}>
     
@@ -100,7 +100,7 @@ function LinkedEmail() {
         <tr>
           <th>From</th>
           <th>Total Scanned Emails</th>
-          <th>Unsubscribe Links Found</th>
+          <th>Unqiue Unsubscribe Links Found</th>
         </tr>
       </thead>
       <tbody>
@@ -109,6 +109,7 @@ function LinkedEmail() {
             <td>{email_sender.email_from}</td>
             <td>{email_sender.scanned_email_count}</td>
             <td>{email_sender.unsubscribe_link_count}</td>
+            {/* TODO: Add button here to click and navigate to see this email sender's scanned emails */}
         </tr>
         ))}
       </tbody>

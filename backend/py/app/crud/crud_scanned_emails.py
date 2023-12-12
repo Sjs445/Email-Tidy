@@ -135,18 +135,17 @@ class CRUDScannedEmails(
         *,
         user_id: int,
         linked_email: str,
+        email_from: str,
         page: int = 0,
-        email_from: str = None,
     ) -> List[dict]:
-        """Get a paginated list of scanned emails. Optionally filter by a specific email from address.
+        """Get a paginated list of scanned emails. Filter by a specific email from address.
 
         Args:
             db (Session): The db session
             user_id (int): The session user_id
             linked_email (str): Filter scanned_emails owned by a linked_email address.
+            email_from (str): An email to filter by.
             page (int, optional): The page to fetch. Defaults to 0.
-            email_from (str, optional): An email to filter by. Defaults to None.
-
         Returns:
             List[dict]: The scanned email data
         """
@@ -154,27 +153,18 @@ class CRUDScannedEmails(
             db, user_id=user_id, linked_email_address=linked_email
         )
 
-        where = ""
-        bind = {}
-
         if page:
             offset = page * 10
         else:
             offset = 0
 
-        # Bind WHERE params for email_from and a linked_email_address
-        where += "WHERE se.linked_email_address = :linked_email"
-        where += " AND users.id = :user_id"
-        bind["linked_email"] = linked_email.email
-        bind["user_id"] = user_id
+        bind = {
+            "linked_email": linked_email.email,
+            "user_id": user_id,
+            "email_from": email_from,
+            "offset": offset
+        }
 
-        if email_from is not None and isinstance(email_from, str):
-            where += " AND se.email_from = :email_from"
-            bind["email_from"] = email_from
-
-        bind["offset"] = offset
-
-        # SQL AUDIT: Parameters are passed using bind. SAFE.
         results = db.execute(
             f"""SELECT se.id, se.email_from, se.subject, se.linked_email_address, COUNT(ul.scanned_email_id) AS link_count, ul.unsubscribe_status, COUNT(*) OVER() as total_count
                     FROM scanned_emails AS se
@@ -184,7 +174,12 @@ class CRUDScannedEmails(
                     ON le.email = se.linked_email_address
                 INNER JOIN users
                     ON users.id = le.user_id
-                {where}
+                WHERE
+                    se.linked_email_address = :linked_email
+                AND
+                    users.id = :user_id
+                AND
+                    se.email_from = :email_from
                 GROUP BY se.id, se.insert_ts, ul.unsubscribe_status
                 LIMIT 10
                 OFFSET :offset
