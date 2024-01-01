@@ -6,8 +6,8 @@ import { getScannedEmails, unsubscribeFromLinks, unsubscribeFromAll, reset, getR
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
-import ScanEmailForm from '../components/ScanEmailForm';
 import ProgressBar from '../components/ProgressBar';
+import InfiniteScroll from 'react-infinite-scroll-component';
 
 // TODO: Make this a page accessible by URL. When someone clicks on an email sender they are navigated here.
 // On this page you should be able to:
@@ -22,7 +22,7 @@ function ScannedEmails() {
   const params = useParams();
   const [ searchParams ] = useSearchParams();
   const linked_email = searchParams.get("linked_email");
-  const email_from   = searchParams.get("email_from");
+  const email_from   = params.sender;
 
   const { user } = useSelector( (state) => state.auth );
   const { scanned_emails, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
@@ -30,13 +30,9 @@ function ScannedEmails() {
   const [scanningDone, setScanningDone] = useState(false);
   const [page, setPage] = useState(0);
 
-  // Unsubscribe from selected emails
+  // Unsubscribe from this sender
   const onSubmit = e => {
     e.preventDefault();
-
-    if ( formData.length == 0 ) {
-      return toast.error("No emails selected");
-    }
 
     const unsubscribeData = {
       linked_email_address: linked_email,
@@ -45,7 +41,6 @@ function ScannedEmails() {
     }
 
     dispatch(unsubscribeFromLinks(unsubscribeData));
-    setFormData([]);
   };
   
   // If there's no user token send them to the login page.
@@ -56,11 +51,11 @@ function ScannedEmails() {
     } else {
       dispatch(test_token())
         .then( () => dispatch(getRunningTask(linked_email)))
-        .then( () => dispatch(getScannedEmailCount(linked_email)) )
         .then( () => {
           const getScannedEmailData = {
             page: page,
-            linked_email: linked_email
+            linked_email: linked_email,
+            email_from: email_from,
           }
           dispatch(getScannedEmails(getScannedEmailData));
         })
@@ -70,20 +65,11 @@ function ScannedEmails() {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, page, scanningDone]);
+  }, [navigate, dispatch, user, scanningDone]);
 
   // Tells us how many scanned emails from this page we've seen
   const seenCount = 10 * ( page + 1 );
-
-  // Number of pages
-  const totalPages = Math.floor(scanned_email_count / 10);
-
-  // Previous pages
-  let prevPages = [];
-
-  if ( page > 0 && page < totalPages ) {
-    prevPages.push(page-1);
-  }
+  const totalEmails = scanned_emails ? scanned_emails[0]?.total_count : 0;
 
   if ( isLoading ) {
     return <Spinner />
@@ -97,80 +83,56 @@ function ScannedEmails() {
     <>
     <section className="heading">
     <h1>Scanned Emails</h1>
+    <h3>{email_from}</h3>
     <p>{linked_email}</p>
     </section>
     
     <section>
     {scanned_emails.length > 0 ? (
+      <div id="scroll" style={{ height: 500, overflow: "auto" }}>
+    
+      <InfiniteScroll
+        dataLength={scanned_emails.length}
+        next={ () => {
+          setPage(page+1);
+          dispatch(getScannedEmails({linked_email: linked_email, page: page + 1, email_from: email_from}));
+         }
+        }
+        hasMore={seenCount < totalEmails}
+        loader={<p>Loading...</p>}
+        scrollableTarget="scroll"
+      >
       <form onSubmit={onSubmit}>
-      <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All</button>
       <table className='content-table'>
         <thead>
           <tr>
-            <th>From</th>
             <th>Subject</th>
             <th>Unsubscribe Links Found</th>
-            <th>Unsubscribe</th>
+            <th>Unsubscribe Status</th>
           </tr>
         </thead>
         <tbody>
-        {scanned_emails.slice(0, 10).map( (scanned_email) => (
+        {scanned_emails.map( (scanned_email) => (
         <tr key={scanned_email.id}>
-            <td>{scanned_email.from}</td>
             <td>{scanned_email.subject}</td>
-            <td>{scanned_email.link_count}</td>
+            <td>{scanned_email.unsubscribe_link_count}</td>
             <td>
-            {scanned_email.link_count > 0 ? (
-              scanned_email.unsubscribe_status === 'pending' ? 
-                <div>
-                <label className='checkbox' htmlFor={scanned_email.id}>
-                  <input
-                  className='checkbox__input'
-                  type="checkbox"
-                  id={scanned_email.id}
-                  name={scanned_email.id}
-                  value={scanned_email.id}
-                  onChange={onChange} />
-                  <div className='checkbox__box'></div>
-                  Unsubscribe
-                </label>
-                </div>
-                : <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_status={scanned_email.unsubscribe_status} linked_email={linked_email} />
+            {scanned_email.unsubscribe_link_count > 0 ? (
+              <UnsubscribeStatus scanned_email_id={scanned_email.id} unsubscribe_statuses={scanned_email.unsubscribe_statuses} linked_email={linked_email} />
             ) : <p>No unsubscribe links found</p>}
             </td>
         </tr>
     ))}
     </tbody>
     </table>
-
-    {/* TODO: Add number links to go directly to a page. */}
-
-    <div style={{display: 'flex', justifyContent: 'space-between'}}>
-
-    {/* Don't allow someone to go to the previous page if we're on page 0*/}
-    { page === 0 ? 
-      <button className='btn btn-prev' disabled>&laquo; Prev Page</button> : 
-      <div>
-        <button className='btn btn-prev' type="button" onClick={ () => navToPage(0)}>&laquo;</button>
-        <button className='btn btn-prev' type="button" onClick={ () => navToPage(page-1)}>&laquo; Prev Page</button>
-      </div>
-    }
-
-    {/* Don't allow someone to go to the next page if we're at the max count of emails */}
-    { seenCount < scanned_email_count  ?
-      <div>
-        <button className='btn btn-next' type="button" onClick={ () => navToPage(page + 1)}>Next Page &raquo;</button>
-        <button className='btn btn-next' type="button" onClick={ () => navToPage(totalPages)}>&raquo;</button>
-      </div> : <button className='btn btn-next' disabled>Next Page &raquo;</button>
-    }
-    </div>
   
-    <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe</button>
+    <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe from {email_from}</button>
     </form>
+    </InfiniteScroll>
+    </div>
     ) : (
       <div>
         <h3>No scanned emails found.</h3>
-        <ScanEmailForm linked_email_id={params.id} />
       </div>
     )}
     

@@ -138,5 +138,25 @@ class CRUDUnsubscribeLinks(
         task = celery_worker.unsubscribe_from_all.delay(linked_email.id, user_id)
         return task.task_id
 
+    def unsubscribe_from_senders(self, db: Session, *, email_senders: List[str], linked_email_address: str, user_id: int) -> str:
+        """Unsubscribe from selected senders associated with this linked email address.
+
+        Args:
+            db (Session): The db session
+            email_senders (List[str]): A list of email senders
+            linked_email_address (str): The linked email associated with unsubscribing
+            user_id (int): The session user id
+
+        Returns:
+            str: The unsubscribe task id
+        """
+        linked_email = crud.linked_email.get_single_by_user_id(
+            db, user_id=user_id, linked_email_address=linked_email_address
+        )
+
+        # Hand off the work to celery and return the task id
+        task = celery_worker.unsubscribe_from_senders.delay(linked_email.id, user_id, email_senders)
+        return task.task_id
+
 
 unsubscribe_links = CRUDUnsubscribeLinks(UnsubscribeLinks)

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app import crud, models
 from app.api.deps import get_current_user
 from app.database.database import get_db
-from app.schemas.unsubscribe_links import UnsubscribeEmail, UnsubscribeFromAll
+from app.schemas.unsubscribe_links import UnsubscribeEmail, UnsubscribeFromAll, UnsubscribeFromSenders
 
 router = APIRouter()
 
@@ -62,6 +62,32 @@ def unsubscribe(
             linked_email_address=unsub_info.linked_email_address,
             user_id=user.id,
             page=unsub_info.page,
+        )
+    }
+
+@router.post("/unsubscribe_from_senders")
+def unsubscribe_from_senders(
+    *,
+    unsub_info: UnsubscribeFromSenders,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Unsubscribe from selected senders associated with this linked email address.
+
+    Args:
+        unsub_info (UnsubscribeFromSenders): Request params, includes list of senders and linked email.
+        db (Session): The db session.
+        user (models.User): The session user.
+
+    Returns:
+        dict: The task id handed off to celery
+    """
+    return {
+        "unsubscribe_task_id": crud.unsubscribe_links.unsubscribe_from_senders(
+            db=db,
+            email_senders=unsub_info.email_senders,
+            linked_email_address=unsub_info.linked_email_address,
+            user_id=user.id,
         )
     }
 

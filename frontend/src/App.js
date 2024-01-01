@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LinkedEmail from './pages/LinkedEmail';
+import ScannedEmails from './pages/ScannedEmails';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/linked_email/:id' element={<LinkedEmail />} />
+        <Route path='/scanned_emails/:sender' element={<ScannedEmails />} />
         <Route path='/*' element={ <Navigate to="/" /> } />
       </Routes>
     </div>

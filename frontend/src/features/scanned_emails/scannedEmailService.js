@@ -25,10 +25,10 @@ const getScannedEmails = async ( getScannedEmailData, token ) => {
 
     let url = API_URL;
 
-    // Add optional params
+    // Add params
     url += ( "undefined" !== typeof(getScannedEmailData.page) ? getScannedEmailData.page : '' );
-    url += ( getScannedEmailData.linked_email ? `?linked_email=${getScannedEmailData.linked_email}` : '' );
-    url += ( getScannedEmailData.emailFrom ? `?email_from=${getScannedEmailData.emailFrom}` : '');
+    url += `?linked_email=${getScannedEmailData.linked_email}`;
+    url += `&email_from=${getScannedEmailData.email_from}`;
 
     const response = await axios.get(url, config);
 
@@ -113,6 +113,19 @@ const getEmailSenders = async ( emailSenderData, token ) => {
     return response.data.senders;
 }
 
+// Unsubscribe from selected senders
+const unsubscribeFromSenders = async ( unsubscribeData, token ) => {
+    const config = {
+        headers: {
+            Authorization: `Bearer ${token}`
+        }
+    }
+
+    const response = await axios.post("/unsubscribe_links/unsubscribe_from_senders", unsubscribeData, config);
+
+    return response.data.unsubscribe_task_id;
+}
+
 const scannedEmailService = {
     getEmailSenders,
     scanLinkedEmail,
@@ -122,6 +135,7 @@ const scannedEmailService = {
     getRunningTask,
     unsubscribeFromLinks,
     unsubscribeFromAll,
+    unsubscribeFromSenders,
 }
 
 export default scannedEmailService

@@ -27,6 +27,10 @@ class UnsubscribeEmail(BaseModel):
 class UnsubscribeFromAll(BaseModel):
     linked_email_address: EmailStr
 
+class UnsubscribeFromSenders(BaseModel):
+    email_senders: List[EmailStr]
+    linked_email_address: EmailStr
+
 
 # Placeholder
 class UnsubscribeEmailUpdate(BaseModel):

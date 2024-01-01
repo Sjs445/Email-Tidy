@@ -1,9 +1,12 @@
 import requests
 
+from typing import List
+
 from app.database.database import SessionLocal
 from app.config import security
 from app.config.config import settings
 from app.models.linked_emails import LinkedEmails
+from app.models.scanned_emails import ScannedEmails
 from app.models.unsubscribe_links import UnsubscribeLinks, UnsubscribeStatus
 from app.objects.email_unsubscriber import EmailUnsubscriber
 
@@ -115,6 +118,78 @@ def unsubscribe_from_all(self, linked_email_id: int, user_id: int) -> int:
             .filter(
                 UnsubscribeLinks.linked_email_address == linked_email.email,
                 UnsubscribeLinks.unsubscribe_status == UnsubscribeStatus.pending,
+            )
+            .all()
+        )
+
+        total_links = len(links)
+
+        for idx, link in enumerate(links):
+
+            try:
+                res = requests.get(link.link, timeout=5)
+                # TODO: Do something with the res.text. We could possibly parse it
+                # to see if there is another 'click' needed to unsubscribe.
+                if res.status_code == 200:
+                    link.unsubscribe_status = UnsubscribeStatus.success
+                else:
+                    link.unsubscribe_status = UnsubscribeStatus.failure
+            except:
+                link.unsubscribe_status = UnsubscribeStatus.failure
+
+            self.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': idx,
+                    'total': total_links
+                }
+            )
+
+        db.commit()
+    
+    finally:
+        remove_task_id_from_linked_email(db, linked_email_id, 'unsubscribe')
+        db.close()
+
+@celery.task(name="unsubscribe_from_senders", bind=True)
+def unsubscribe_from_senders(self, linked_email_id: int, user_id: int, email_senders: List[str]) -> int:
+    """Unsubscribe from selected senders associated with this linked email address.
+
+    Args:
+        linked_email_id (int): The linked email address
+        user_id (int): the session user id
+        email_senders (List[str]): A list of email senders
+
+    Returns:
+        int: The number of email unsubscribed from
+    """
+
+    db = SessionLocal()
+
+    try:
+        # Get the linked_email from the db
+        linked_email = (
+            db.query(LinkedEmails)
+            .filter(
+                LinkedEmails.id == linked_email_id,
+                LinkedEmails.user_id == user_id,
+            )
+            .first()
+        )
+
+        if not linked_email:
+            raise Exception(f"Could not find linked email {linked_email_id}")
+
+        linked_email.unsubscribe_task_id = self.request.id
+        db.commit()
+
+        links = (
+            db.query(UnsubscribeLinks)
+            .join(ScannedEmails, ScannedEmails.id == UnsubscribeLinks.scanned_email_id)
+            .filter(
+                UnsubscribeLinks.linked_email_address == linked_email.email,
+                UnsubscribeLinks.unsubscribe_status == UnsubscribeStatus.pending,
+                ScannedEmails.email_from.in_(email_senders),
             )
             .all()
         )

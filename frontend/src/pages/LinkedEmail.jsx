@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getEmailSenders, unsubscribeFromAll, unsubscribeFromLinks, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
+import { getEmailSenders, unsubscribeFromAll, unsubscribeFromSenders, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import ScanEmailForm from '../components/ScanEmailForm';
 import ProgressBar from '../components/ProgressBar';
 import InfiniteScroll from 'react-infinite-scroll-component';
+import UnsubscribeStatuses from "../components/UnsubscribeStatuses";
 
 
 function LinkedEmail() {
@@ -24,6 +25,18 @@ function LinkedEmail() {
   const [scanningDone, setScanningDone] = useState(false);
   const [page, setPage] = useState(0);
 
+
+  const [formData, setFormData ] = useState([]);
+
+  // When someone selects and deselects a sender
+  const onChange = (e) => {
+    if ( e.target.checked ) {
+      formData.push(e.target.value);
+    } else {
+      setFormData(formData.filter( (email_from) => email_from !== e.target.value))
+    }
+  };
+
   // Unsubscribe from all emails
   const unsubFromAll = (e) => {
     e.preventDefault();
@@ -33,6 +46,23 @@ function LinkedEmail() {
     }
 
     dispatch(unsubscribeFromAll(unsubscribeData));
+  };
+
+  // Unsubscribe from selected email senders
+  const onSubmit = e => {
+    e.preventDefault();
+
+    if ( formData.length == 0 ) {
+      return toast.error("No emails selected");
+    }
+
+    const unsubscribeData = {
+      linked_email_address: linked_email,
+      email_senders: formData,
+    }
+
+    dispatch(unsubscribeFromSenders(unsubscribeData));
+    setFormData([]);
   };
   
   // If there's no user token send them to the login page.
@@ -95,12 +125,14 @@ function LinkedEmail() {
       loader={<p>Loading...</p>}
       scrollableTarget="scroll"
     >
+      <form onSubmit={onSubmit}>
       <table className='content-table' >
       <thead>
         <tr>
           <th>From</th>
           <th>Total Scanned Emails</th>
-          <th>Unqiue Unsubscribe Links Found</th>
+          <th>Unsubscribe Links Found</th>
+          <th>Unsubscribe</th>
         </tr>
       </thead>
       <tbody>
@@ -109,11 +141,32 @@ function LinkedEmail() {
             <td>{email_sender.email_from}</td>
             <td>{email_sender.scanned_email_count}</td>
             <td>{email_sender.unsubscribe_link_count}</td>
-            {/* TODO: Add button here to click and navigate to see this email sender's scanned emails */}
+
+            {/* If any of the statuses are 'pending' show the unsubscribe button. Otherwise show the unsubscribe status component. */}
+            <td>
+              {email_sender.unsubscribe_statuses?.length > 0 ? (
+                email_sender.unsubscribe_statuses.some( (unsubscribe_status) => unsubscribe_status === 'pending' ) ? (
+                  <div>
+                    <label className='checkbox' htmlFor={email_sender.email_from}>
+                      <input
+                      className='checkbox__input'
+                      type="checkbox"
+                      id={email_sender.email_from}
+                      name={email_sender.email_from}
+                      value={email_sender.email_from}
+                      onChange={onChange} />
+                      <div className='checkbox__box'></div>
+                      Unsubscribe
+                    </label>
+                </div>
+                ) : <UnsubscribeStatuses statuses={email_sender.unsubscribe_statuses} email_from={email_sender.email_from} linked_email={linked_email} />
+              ) :  <p>No unsubscribe links found</p>}
+            </td>
         </tr>
         ))}
       </tbody>
       </table>
+      </form>
     </InfiniteScroll>
       </div>
       </div>

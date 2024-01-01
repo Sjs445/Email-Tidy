@@ -108,26 +108,28 @@ class CRUDScannedEmails(
         bind = {"linked_email": linked_email.email, "offset": offset}
 
         results = db.execute(
-            f"""SELECT DISTINCT email_from, COUNT(*) AS scanned_email_count, COUNT(ul.id) AS unsubscribe_link_count, COUNT(*) OVER() as total_count
-                    FROM scanned_emails
-                LEFT OUTER JOIN unsubscribe_links AS ul
-                    ON ul.scanned_email_id = scanned_emails.id
-                WHERE scanned_emails.linked_email_address = :linked_email
+            f"""SELECT DISTINCT
+                    email_from,
+                    COUNT(DISTINCT se.id) AS scanned_email_count,
+                    COUNT(ul.id) AS unsubscribe_link_count,
+                    COUNT(*) OVER() as total_count,
+
+                    -- Get an array of unsubscribe statuses for this sender. Cast back to text array so sqlalchemy can return as a list in python
+                    ( array_agg( ul.unsubscribe_status ) FILTER ( WHERE ul.unsubscribe_status IS NOT NULL ) )::text[] AS unsubscribe_statuses
+                FROM
+                    scanned_emails se
+                LEFT OUTER JOIN
+                    unsubscribe_links AS ul
+                ON ul.scanned_email_id = se.id
+                WHERE
+                    se.linked_email_address = :linked_email
                 GROUP BY email_from
                 LIMIT 10
                 OFFSET :offset
             """,
             bind
         ).all()
-        return [
-            {
-                "email_from": res[0],
-                "scanned_email_count": res[1],
-                "unsubscribe_link_count": res[2],
-                "total_count": res[3],
-            }
-            for res in results
-        ] 
+        return [ dict(res) for res in results ]
 
     def get_scanned_emails(
         self,
@@ -159,45 +161,32 @@ class CRUDScannedEmails(
             offset = 0
 
         bind = {
-            "linked_email": linked_email.email,
-            "user_id": user_id,
             "email_from": email_from,
             "offset": offset
         }
 
         results = db.execute(
-            f"""SELECT se.id, se.email_from, se.subject, se.linked_email_address, COUNT(ul.scanned_email_id) AS link_count, ul.unsubscribe_status, COUNT(*) OVER() as total_count
-                    FROM scanned_emails AS se
-                LEFT OUTER JOIN unsubscribe_links AS ul
-                    ON ul.scanned_email_id = se.id
-                INNER JOIN linked_emails AS le
-                    ON le.email = se.linked_email_address
-                INNER JOIN users
-                    ON users.id = le.user_id
+            f"""SELECT
+                    se.id,
+                    se.subject,
+                    COUNT(ul.id) AS unsubscribe_link_count,
+                    ( array_agg( ul.unsubscribe_status ) FILTER ( WHERE ul.unsubscribe_status IS NOT NULL ) )::text[] AS unsubscribe_statuses,
+                    COUNT(*) OVER() as total_count
+                FROM
+                    scanned_emails AS se
+                LEFT OUTER JOIN
+                    unsubscribe_links AS ul
+                ON
+                    ul.scanned_email_id = se.id
                 WHERE
-                    se.linked_email_address = :linked_email
-                AND
-                    users.id = :user_id
-                AND
                     se.email_from = :email_from
-                GROUP BY se.id, se.insert_ts, ul.unsubscribe_status
+                GROUP BY se.id, se.insert_ts
                 LIMIT 10
                 OFFSET :offset
             """,
             bind,
         ).all()
-        return [
-            {
-                "id": res[0],
-                "from": res[1],
-                "subject": res[2],
-                "linked_email_address": res[3],
-                "link_count": res[4],
-                "unsubscribe_status": res[5],
-                "total_count": res[6],
-            }
-            for res in results
-        ]
+        return [ dict(res) for res in results ]
     
     def delete_scanned_emails(
             self,

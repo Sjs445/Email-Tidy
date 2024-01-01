@@ -7,4 +7,5 @@ from .unsubscribe_links import (
     UnsubscribeEmailsCreate,
     UnsubscribeEmailUpdate,
     UnsubscribeFromAll,
+    UnsubscribeFromSenders,
 )

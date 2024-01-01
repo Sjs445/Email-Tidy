@@ -160,6 +160,17 @@ export const getEmailSenders = createAsyncThunk('scanned_emails/getSenders', asy
     }
 });
 
+// Unsubscribe from selected senders
+export const unsubscribeFromSenders = createAsyncThunk('scanned_emails/unsubscribeFromSenders', async(unsubscribeData, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+        return await scannedEmailService.unsubscribeFromSenders(unsubscribeData, token);
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
 export const scannedEmailSlice = createSlice({
     name: 'scanned_email',
     initialState,
@@ -181,9 +192,6 @@ export const scannedEmailSlice = createSlice({
             state.isError = true
             state.message = action.payload
          })
-         .addCase(getScannedEmails.pending, (state) => {
-            state.isLoading = true
-        })
         .addCase(getScannedEmails.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
@@ -273,6 +281,19 @@ export const scannedEmailSlice = createSlice({
             state.email_senders = [...state.email_senders, ...action.payload]
         })
         .addCase(getEmailSenders.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(unsubscribeFromSenders.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(unsubscribeFromSenders.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.unsubscribe_task_id = action.payload
+        })
+        .addCase(unsubscribeFromSenders.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

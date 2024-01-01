@@ -78,13 +78,11 @@ class TestLinkEmail:
 
         expected_scanned_emails_page_0 = [
             {
-                "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 1 if i == 0 else 0,
-                "linked_email_address": "email@yahoo.com",
+                "unsubscribe_link_count": 1 if i == 0 else 0,
                 "subject": f"Spam Email - {i}",
                 "total_count": 20,
-                "unsubscribe_status": "pending" if i == 0 else None
+                "unsubscribe_statuses": ["pending"] if i == 0 else None
             }
             for i in range(10)
         ]
@@ -100,12 +98,10 @@ class TestLinkEmail:
 
         expected_scanned_emails_page_1 = [
             {
-                "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 0,
-                "linked_email_address": "email@yahoo.com",
+                "unsubscribe_link_count": 0,
                 "subject": f"Spam Email - {i}",
-                "unsubscribe_status": None,
+                "unsubscribe_statuses": None,
                 "total_count": 20,
             }
             for i in range(10, 20)
@@ -153,5 +149,6 @@ class TestLinkEmail:
                 "scanned_email_count": 20,
                 "unsubscribe_link_count": 1,
                 "total_count": 1,
+                "unsubscribe_statuses": ["pending"],
             }
         ]
