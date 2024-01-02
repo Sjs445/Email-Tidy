@@ -20,7 +20,7 @@ function LinkedEmail() {
   const linked_email = searchParams.get("linked_email");
 
   const { user } = useSelector( (state) => state.auth );
-  const { email_senders, scan_task_id, unsubscribe_task_id, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { email_senders, scan_task_id, unsubscribe_task_id, isLoading } = useSelector( (state) => state.scanned_email);
 
   const [scanningDone, setScanningDone] = useState(false);
   const [page, setPage] = useState(0);
@@ -110,7 +110,8 @@ function LinkedEmail() {
     <section>
     {email_senders.length > 0 ? (
     <div>
-      <h3>You may unsubscribe from all spam email senders here or inspect individual senders</h3>
+      <ScanEmailForm linked_email_id={params.id} rescan={1} /> 
+      <h3>Unsubscribe from all spam email senders or select individual senders to unsubscribe from</h3>
     <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
     <div id="scroll" style={{ height: 500, overflow: "auto" }}>
     

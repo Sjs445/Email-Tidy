@@ -124,6 +124,7 @@ class CRUDScannedEmails(
                 WHERE
                     se.linked_email_address = :linked_email
                 GROUP BY email_from
+                ORDER BY email_from
                 LIMIT 10
                 OFFSET :offset
             """,
@@ -181,6 +182,7 @@ class CRUDScannedEmails(
                 WHERE
                     se.email_from = :email_from
                 GROUP BY se.id, se.insert_ts
+                ORDER BY se.subject
                 LIMIT 10
                 OFFSET :offset
             """,

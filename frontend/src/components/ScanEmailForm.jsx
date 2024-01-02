@@ -2,8 +2,10 @@ import { useDispatch } from 'react-redux';
 import { scanLinkedEmail } from '../features/scanned_emails/scannedEmailSlice';
 
 
-function ScanEmailForm({linked_email_id}) {
+function ScanEmailForm({linked_email_id, rescan}) {
     const dispatch = useDispatch();
+
+    const scan = rescan ? "Re-scan" : "Scan"
 
     const onSubmit = e => {
         e.preventDefault();
@@ -16,7 +18,7 @@ function ScanEmailForm({linked_email_id}) {
   return <section className='form'>
     <form onSubmit={onSubmit}>
         <div className='form-group'>
-            <button className='btn btn-block' type='submit'>Scan All Emails</button>
+            <button className='btn btn-block' type='submit'>{scan} All Emails</button>
         </div>
     </form>
   </section>

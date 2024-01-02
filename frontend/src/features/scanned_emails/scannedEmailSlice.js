@@ -8,7 +8,6 @@ const initialState = {
     unsubscribe_task_id: null,
     task_status: {},
     progress: {},
-    scanned_email_count: 0,
     isError: false,
     isSuccess: false,
     isLoading: false,
@@ -59,24 +58,6 @@ export const getRunningTask = createAsyncThunk('scanned_emails/getRunningTask', 
         }
 
         return await scannedEmailService.getRunningTask(linked_email, token);
-
-    } catch (error) {
-        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
-        return thunkAPI.rejectWithValue(message);
-    }
-});
-
-// Check to see if there's a running task for this linked email
-export const getScannedEmailCount = createAsyncThunk('scanned_emails/getScannedEmailCount', async (linked_email, thunkAPI) => {
-    try {
-        const token = thunkAPI.getState().auth.user;
-
-        // If there's no token reject early
-        if ( !token ) {
-            return thunkAPI.rejectWithValue("Unauthorized");
-        }
-
-        return await scannedEmailService.getScannedEmailCount(linked_email, token);
 
     } catch (error) {
         const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
@@ -195,7 +176,7 @@ export const scannedEmailSlice = createSlice({
         .addCase(getScannedEmails.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails = action.payload
+            state.scanned_emails = [...state.scanned_emails, ...action.payload]
         })
         .addCase(getScannedEmails.rejected, (state, action) => {
             state.isLoading = false
@@ -208,7 +189,6 @@ export const scannedEmailSlice = createSlice({
         .addCase(unsubscribeFromLinks.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails = action.payload
         })
         .addCase(unsubscribeFromLinks.rejected, (state, action) => {
             state.isLoading = false
@@ -238,19 +218,6 @@ export const scannedEmailSlice = createSlice({
             state.unsubscribe_task_id = action.payload.unsubscribe_task_id
         })
         .addCase(getRunningTask.rejected, (state, action) => {
-            state.isLoading = false
-            state.isError = true
-            state.message = action.payload
-        })
-        .addCase(getScannedEmailCount.pending, (state) => {
-            state.isLoading = true
-        })
-        .addCase(getScannedEmailCount.fulfilled, (state, action) => {
-            state.isLoading = false
-            state.isSuccess = true
-            state.scanned_email_count = action.payload
-        })
-        .addCase(getScannedEmailCount.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

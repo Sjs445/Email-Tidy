@@ -53,10 +53,10 @@ def unsubscribe(
         user (models.User): The session user
 
     Returns:
-        dict: The modified unsubscribe links
+        dict: The success state of the operation
     """
     return {
-        "scanned_emails": crud.unsubscribe_links.unsubscribe(
+        "success": crud.unsubscribe_links.unsubscribe(
             db,
             email_addresses=unsub_info.email_sender,
             linked_email_address=unsub_info.linked_email_address,

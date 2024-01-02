@@ -2,19 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { test_token } from "../features/auth/authSlice";
 import { useDispatch, useSelector } from 'react-redux';
-import { getScannedEmails, unsubscribeFromLinks, unsubscribeFromAll, reset, getRunningTask, getScannedEmailCount} from '../features/scanned_emails/scannedEmailSlice';
+import { getScannedEmails, unsubscribeFromLinks, reset, getRunningTask } from '../features/scanned_emails/scannedEmailSlice';
 import Spinner from '../components/Spinner';
 import {toast} from 'react-toastify';
 import UnsubscribeStatus from '../components/UnsubscribeStatus';
 import ProgressBar from '../components/ProgressBar';
 import InfiniteScroll from 'react-infinite-scroll-component';
 
-// TODO: Make this a page accessible by URL. When someone clicks on an email sender they are navigated here.
-// On this page you should be able to:
-//   1. See scanned emails using infinite scroll.
-//   2. Be able to unsubscribe from this sender.
-//   3. Be able to see the unsubscribe status per scanned email.
-//   4. Be able to click scanned emails to see their unsubscribe links.
+
 function ScannedEmails() {
 
   const navigate = useNavigate();
@@ -25,7 +20,7 @@ function ScannedEmails() {
   const email_from   = params.sender;
 
   const { user } = useSelector( (state) => state.auth );
-  const { scanned_emails, scan_task_id, unsubscribe_task_id, scanned_email_count, isLoading, isError, message } = useSelector( (state) => state.scanned_email);
+  const { scanned_emails, scan_task_id, unsubscribe_task_id, isLoading } = useSelector( (state) => state.scanned_email);
 
   const [scanningDone, setScanningDone] = useState(false);
   const [page, setPage] = useState(0);
@@ -37,7 +32,6 @@ function ScannedEmails() {
     const unsubscribeData = {
       linked_email_address: linked_email,
       email_sender: email_from,
-      page: page,
     }
 
     dispatch(unsubscribeFromLinks(unsubscribeData));
@@ -83,12 +77,13 @@ function ScannedEmails() {
     <>
     <section className="heading">
     <h1>Scanned Emails</h1>
-    <h3>{email_from}</h3>
     <p>{linked_email}</p>
     </section>
     
     <section>
     {scanned_emails.length > 0 ? (
+      <div>
+      <button onClick={onSubmit} className='btn btn-block'>Unsubscribe from {email_from}</button>
       <div id="scroll" style={{ height: 500, overflow: "auto" }}>
     
       <InfiniteScroll
@@ -102,7 +97,7 @@ function ScannedEmails() {
         loader={<p>Loading...</p>}
         scrollableTarget="scroll"
       >
-      <form onSubmit={onSubmit}>
+
       <table className='content-table'>
         <thead>
           <tr>
@@ -125,10 +120,8 @@ function ScannedEmails() {
     ))}
     </tbody>
     </table>
-  
-    <button type="submit" className='btn btn-block' style={{marginTop: '10px', marginBottom: '5px'}}>Unsubscribe from {email_from}</button>
-    </form>
     </InfiniteScroll>
+    </div>
     </div>
     ) : (
       <div>

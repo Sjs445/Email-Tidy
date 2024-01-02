@@ -64,7 +64,6 @@ class CRUDUnsubscribeLinks(
         email_sender: str,
         linked_email_address: str,
         user_id: int,
-        page: int,
     ) -> list:
         """Unsubscribe from a specific email sender
 
@@ -73,10 +72,9 @@ class CRUDUnsubscribeLinks(
             email_sender (List[str]): The email sender to unsubscribe from
             linked_email (str): The linked email address
             user_id (int): The session user id
-            page (int): The page we're on. Helps the front-end update scanned email data.
 
         Returns:
-            list: The updated unsubscribe links
+            bool: True on success
         """
 
         linked_email = crud.linked_email.get_single_by_user_id(
@@ -109,13 +107,7 @@ class CRUDUnsubscribeLinks(
                 link.unsubscribe_status = UnsubscribeStatus.failure
         db.commit()
 
-        # Fetch the list of scanned emails for the front-end to update data
-        return crud.scanned_emails.get_scanned_emails(
-            db,
-            user_id=user_id,
-            linked_email=linked_email.email,
-            page=page,
-        )
+        return True
 
     def unsubscribe_from_all(self, db: Session, *, linked_email_address: str, user_id: int) -> str:
         """Unsubscribe from all emails associated with a linked email address.
