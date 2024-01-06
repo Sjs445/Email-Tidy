@@ -28,7 +28,7 @@ class UnsubscribeFromAll(BaseModel):
     linked_email_address: EmailStr
 
 class UnsubscribeFromSenders(BaseModel):
-    email_senders: List[EmailStr]
+    email_senders: List[str]
     linked_email_address: EmailStr
 
 

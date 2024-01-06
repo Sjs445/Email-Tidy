@@ -35,25 +35,19 @@ function LinkedEmail() {
     } else {
       setFormData(formData.filter( (email_from) => email_from !== e.target.value))
     }
+
   };
 
-  // Unsubscribe from all emails
-  const unsubFromAll = (e) => {
-    e.preventDefault();
-
-    const unsubscribeData = {
-      linked_email_address: linked_email,
-    }
-
-    dispatch(unsubscribeFromAll(unsubscribeData));
-  };
-
-  // Unsubscribe from selected email senders
+  // Unsubscribe from email senders
   const onSubmit = e => {
     e.preventDefault();
 
+    // If no email senders are selected unsubscribe from all
     if ( formData.length == 0 ) {
-      return toast.error("No emails selected");
+      if ( window.confirm("Unsubscribe from all email senders? (This may take a while if there are a lot of emails)") ) {
+        dispatch(unsubscribeFromAll({linked_email_address: linked_email}));
+      }
+      return;
     }
 
     const unsubscribeData = {
@@ -75,7 +69,7 @@ function LinkedEmail() {
         .then( () => dispatch(getRunningTask(linked_email)))
         .then( () => {
           const getEmailSenderData = {
-            page: page,
+            page: 0,
             linked_email: linked_email
           }
           dispatch(getEmailSenders(getEmailSenderData));
@@ -110,9 +104,9 @@ function LinkedEmail() {
     <section>
     {email_senders.length > 0 ? (
     <div>
-      <ScanEmailForm linked_email_id={params.id} rescan={1} /> 
-      <h3>Unsubscribe from all spam email senders or select individual senders to unsubscribe from</h3>
-    <button className="btn btn-block" onClick={unsubFromAll}>Unsubscribe From All Emails</button>
+      <ScanEmailForm linked_email_id={params.id} rescan={1} />
+       <h3>Unsubscribe from all spam email senders or select individual senders to unsubscribe from</h3>
+    <button className="btn btn-block" onClick={onSubmit}>Unsubscribe</button>
     <div id="scroll" style={{ height: 500, overflow: "auto" }}>
     
     <InfiniteScroll
@@ -126,7 +120,6 @@ function LinkedEmail() {
       loader={<p>Loading...</p>}
       scrollableTarget="scroll"
     >
-      <form onSubmit={onSubmit}>
       <table className='content-table' >
       <thead>
         <tr>
@@ -167,7 +160,6 @@ function LinkedEmail() {
         ))}
       </tbody>
       </table>
-      </form>
     </InfiniteScroll>
       </div>
       </div>

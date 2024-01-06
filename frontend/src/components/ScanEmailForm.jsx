@@ -12,7 +12,9 @@ function ScanEmailForm({linked_email_id, rescan}) {
 
         const scanEmailData = { linked_email_id };
 
-        dispatch(scanLinkedEmail(scanEmailData));
+        if( window.confirm("Scan email inbox for spam? (This may take a while)")) {
+          dispatch(scanLinkedEmail(scanEmailData));
+        }
       }
 
   return <section className='form'>

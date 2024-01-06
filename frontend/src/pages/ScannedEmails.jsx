@@ -65,6 +65,15 @@ function ScannedEmails() {
   const seenCount = 10 * ( page + 1 );
   const totalEmails = scanned_emails ? scanned_emails[0]?.total_count : 0;
 
+  // Do we have any scanned emails that are pending? Use this to show the unsubscribe
+  // button for this email sender.
+  let hasPending = false;
+  scanned_emails.forEach(email => {
+    if ( email.unsubscribe_statuses?.some( status => status === 'pending') ) {
+      hasPending = true
+    }
+  });
+
   if ( isLoading ) {
     return <Spinner />
   }
@@ -83,7 +92,8 @@ function ScannedEmails() {
     <section>
     {scanned_emails.length > 0 ? (
       <div>
-      <button onClick={onSubmit} className='btn btn-block'>Unsubscribe from {email_from}</button>
+        { hasPending && <button onClick={onSubmit} className='btn btn-block'>Unsubscribe from {email_from}</button> }
+      
       <div id="scroll" style={{ height: 500, overflow: "auto" }}>
     
       <InfiniteScroll

@@ -70,8 +70,14 @@ class TestLinkEmail:
             )
 
         # Fetch the list of scanned_emails for page 0
-        results = self.client.get(
-            "/scanned_emails/0?linked_email=email@yahoo.com&email_from=spammer@email.com",
+        scanned_email_params = {
+            "linked_email": "email@yahoo.com",
+            "email_from": "spammer@email.com",
+            "page": 0,
+        }
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails = results.get("scanned_emails", [])
@@ -90,8 +96,10 @@ class TestLinkEmail:
 
         # Fetch the list of scanned emails for page 1
         # it should contain the rest of the scanned emails
-        results = self.client.get(
-            "/scanned_emails/1?linked_email=email@yahoo.com&email_from=spammer@email.com",
+        scanned_email_params["page"] = 1
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails2 = results.get("scanned_emails", [])
@@ -110,8 +118,10 @@ class TestLinkEmail:
 
         # Fetch the list of scanned emails for page 2
         # it should not contain anymore emails.
-        results = self.client.get(
-            "/scanned_emails/2?linked_email=email@yahoo.com&email_from=spammer@email.com",
+        scanned_email_params["page"] = 2
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails3 = results.get("scanned_emails", [])

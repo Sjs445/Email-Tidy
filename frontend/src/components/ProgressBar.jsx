@@ -26,7 +26,7 @@ function ProgressBar({setScanningDone, linked_email}) {
 	  <section className='form'>
         { scan_task_id ? 
           <h1>Scanning emails for {linked_email}</h1>
-           : <h1>Unsubscribing from all emails for {linked_email}</h1>
+           : <h1>Unsubscribing from emails for {linked_email}</h1>
         }
         <p>This may take a while. Feel free to close this page and come back later.</p>
 		  <div className="progressbar">

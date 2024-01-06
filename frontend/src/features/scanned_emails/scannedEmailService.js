@@ -23,14 +23,7 @@ const getScannedEmails = async ( getScannedEmailData, token ) => {
         }
     }
 
-    let url = API_URL;
-
-    // Add params
-    url += ( "undefined" !== typeof(getScannedEmailData.page) ? getScannedEmailData.page : '' );
-    url += `?linked_email=${getScannedEmailData.linked_email}`;
-    url += `&email_from=${getScannedEmailData.email_from}`;
-
-    const response = await axios.get(url, config);
+    const response = await axios.post(API_URL + "get_scanned_emails", getScannedEmailData, config);
 
     return response.data.scanned_emails;
 }

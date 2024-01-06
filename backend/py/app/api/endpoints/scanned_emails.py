@@ -55,21 +55,17 @@ def get_senders(
         "senders": crud.scanned_emails.get_senders_by_linked_email(db, user_id=user.id, linked_email=linked_email, page=page)
     }
 
-@router.get("/{page}")
+@router.post("/get_scanned_emails")
 def get_scanned_emails(
     *,
-    linked_email: str,
-    email_from: str,
-    page: int = 0,
+    get_scanned_email: schemas.GetScannedEmails,
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
     """Get a paginated list of scanned emails. Only includes a number count of links found for the email.
 
     Args:
-        linked_email (str): Filter scanned_emails owned by a linked_email address.
-        email_from (str): Filter scanned_emails by a specific from address.
-        page (int, optional): The page to fetch. Defaults to 0.
+        get_scanned_email (schemas.GetScannedEmails): request params including linked_email, email_from, and page
         db (Session): The db session.
         user (models.User): The session user.
 
@@ -79,10 +75,10 @@ def get_scanned_emails(
     return {
         "scanned_emails": crud.scanned_emails.get_scanned_emails(
             db,
-            page=page,
+            page=get_scanned_email.page,
             user_id=user.id,
-            email_from=email_from,
-            linked_email=linked_email,
+            email_from=get_scanned_email.email_from,
+            linked_email=get_scanned_email.linked_email,
         )
     }
 
