@@ -1,3 +1,7 @@
+import datetime
+import pytz
+
+
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -31,8 +35,27 @@ def register_user(
         raise HTTPException(
             status_code=400, detail="The user with this email already exists"
         )
+
+    invite_code = (
+        db.query(models.InviteCodes)
+        .filter(models.InviteCodes.code == user_in.invite_code)
+        .first()
+    )
+
+    if invite_code is None:
+        raise HTTPException(status_code=400, detail="Invalid invite code")
+
+    if invite_code.expire_ts < datetime.datetime.now(pytz.UTC):
+        raise HTTPException(status_code=400, detail="Invite code has expired")
+    
+    if invite_code.used:
+        raise HTTPException(status_code=400, detail="Invite code already used")
+
     user = crud.user.create(db, obj_in=user_in)
     access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    invite_code.used = True
+    invite_code.user_id = user.id
+    db.commit()
 
     # TODO send welcome email here
     return {

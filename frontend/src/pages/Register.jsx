@@ -13,9 +13,10 @@ function Register() {
         email: '',
         password: '',
         password2: '',
+        invite_code: '',
     });
 
-    const { first_name, last_name, email, password, password2 } = formData;
+    const { first_name, last_name, email, password, password2, invite_code } = formData;
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -45,7 +46,7 @@ function Register() {
         e.preventDefault();
 
         const userData = {
-            first_name, last_name, email, password,
+            first_name, last_name, email, password, invite_code
         }
 
         let missing = [];
@@ -98,6 +99,9 @@ function Register() {
         </div>
         <div className='form-group'>
         <input type='password' className='form-control' id='password2' name='password2' value={password2} placeholder='Confirm your password' onChange={onChange} />
+        </div>
+        <div className='form-group'>
+        <input type='text' className='form-control' id='invite_code' name='invite_code' value={invite_code} placeholder='Enter your invite code' onChange={onChange} />
         </div>
         <div className="form-group">
             <button type='submit' className='btn btn-block'>

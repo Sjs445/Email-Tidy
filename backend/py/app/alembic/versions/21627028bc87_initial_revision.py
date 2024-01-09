@@ -55,7 +55,7 @@ def upgrade() -> None:
             sa.String(), nullable=True,
         ),
         sa.Column(
-            "unsubscribe_task_id", nullable=True,
+            "unsubscribe_task_id", sa.String(), nullable=True,
         ),
         sa.ForeignKeyConstraint(
             ["user_id"],
@@ -125,6 +125,18 @@ def upgrade() -> None:
     op.create_index(
         op.f("ix_unsubscribe_links_id"), "unsubscribe_links", ["id"], unique=False
     )
+    op.create_table('invite_codes',
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
+    sa.Column('code', sa.String(), nullable=False),
+    sa.Column('used', sa.Boolean(), nullable=True),
+    sa.Column('expire_ts', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('insert_ts', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=True),
+    sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], onupdate='CASCADE', ondelete='CASCADE'),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_invite_codes_code'), 'invite_codes', ['code'], unique=True)
+    op.create_index(op.f('ix_invite_codes_id'), 'invite_codes', ['id'], unique=False)
     # ### end Alembic commands ###
 
 
@@ -140,6 +152,9 @@ def downgrade() -> None:
     op.drop_index(op.f("ix_users_id"), table_name="users")
     op.drop_index(op.f("ix_users_email"), table_name="users")
     op.drop_table("users")
+    op.drop_index(op.f('ix_invite_codes_id'), table_name='invite_codes')
+    op.drop_index(op.f('ix_invite_codes_code'), table_name='invite_codes')
+    op.drop_table('invite_codes')
     # ### end Alembic commands ###
 
     # Manually Added - Alembic doesn't support dropping ENUM types.
