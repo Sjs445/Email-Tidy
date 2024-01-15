@@ -3,6 +3,11 @@ import scannedEmailService from './scannedEmailService';
 
 const initialState = {
     scanned_emails: [],
+    email_senders: [],
+    scan_task_id: null,
+    unsubscribe_task_id: null,
+    task_status: {},
+    progress: {},
     isError: false,
     isSuccess: false,
     isLoading: false,
@@ -15,7 +20,7 @@ export const scanLinkedEmail = createAsyncThunk('scanned_emails/scan', async(sca
         const token = thunkAPI.getState().auth.user;
         return await scannedEmailService.scanLinkedEmail(scannedEmailData, token);
     } catch (error) {
-        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -26,7 +31,7 @@ export const getScannedEmails = createAsyncThunk('scanned_emails/get', async( ge
         const token = thunkAPI.getState().auth.user;
         return await scannedEmailService.getScannedEmails(getScannedEmailData, token);
     } catch (error) {
-        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -38,6 +43,111 @@ export const unsubscribeFromLinks = createAsyncThunk('scanned_emails/unsubscribe
         return await scannedEmailService.unsubscribeFromLinks(unsubscribeData, token);
     } catch (error) {
         const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Check to see if there's a running task for this linked email
+export const getRunningTask = createAsyncThunk('scanned_emails/getRunningTask', async (linked_email, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
+        return await scannedEmailService.getRunningTask(linked_email, token);
+
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Get the scanned email task status by task id
+export const getTaskStatus = createAsyncThunk('scanned_emails/getTaskStatus', async (task_id, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
+        return await scannedEmailService.getTaskStatus(task_id, token);
+
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Unsubscribe from all emails
+export const unsubscribeFromAll = createAsyncThunk('scanned_emails/unsubscribeFromAll', async( unsubscribeData, thunkAPI ) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early.
+        if( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
+        return await scannedEmailService.unsubscribeFromAll(unsubscribeData, token);
+    } catch ( error ) {
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Update the task_status based on the state
+export const updateTaskStatus = createAsyncThunk('scanned_emails/updateTaskStatus', async (_, thunkAPI) => {
+    try {
+        const task_status = thunkAPI.getState().scanned_email.task_status;
+        const progress = thunkAPI.getState().scanned_email.progress;
+
+        if ( task_status.state === 'PROGRESS') {
+            const total = task_status.details.total;
+            const current = task_status.details.current;
+            const percent = (current/total) * 100;
+
+            // Round to the nearest tenth
+            const rounded = +(Math.round(percent + "e+2")  + "e-2");
+            return { filled: rounded }
+        }
+        else if ( task_status.state === 'FAILURE' ) {
+            throw "An error occurred while scanning your inbox";
+        }
+        else if ( task_status.state === 'SUCCESS' ) {
+            return { filled: 100 };
+        }
+        else {
+            const wait_attempts = progress.wait_attempts ? progress.wait_attempts + 1 : 1;
+            return { filled: 0, wait_attempts: wait_attempts };
+        }
+    } catch (error) {
+        return thunkAPI.rejectWithValue(error);
+    }
+});
+
+// Get a list of email senders with their number of unsub links and scanned email count
+export const getEmailSenders = createAsyncThunk('scanned_emails/getSenders', async( getEmailSenderData, thunkAPI ) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+        return await scannedEmailService.getEmailSenders(getEmailSenderData, token);
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
+        return thunkAPI.rejectWithValue(message);
+    }
+});
+
+// Unsubscribe from selected senders
+export const unsubscribeFromSenders = createAsyncThunk('scanned_emails/unsubscribeFromSenders', async(unsubscribeData, thunkAPI) => {
+    try {
+        const token = thunkAPI.getState().auth.user;
+        return await scannedEmailService.unsubscribeFromSenders(unsubscribeData, token);
+    } catch (error) {
+        const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
         return thunkAPI.rejectWithValue(message);
     }
 });
@@ -56,20 +166,17 @@ export const scannedEmailSlice = createSlice({
          .addCase(scanLinkedEmail.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails = action.payload
+            state.scan_task_id = action.payload
          })
          .addCase(scanLinkedEmail.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload
          })
-         .addCase(getScannedEmails.pending, (state) => {
-            state.isLoading = true
-        })
         .addCase(getScannedEmails.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails = action.payload
+            state.scanned_emails = [...state.scanned_emails, ...action.payload]
         })
         .addCase(getScannedEmails.rejected, (state, action) => {
             state.isLoading = false
@@ -82,9 +189,78 @@ export const scannedEmailSlice = createSlice({
         .addCase(unsubscribeFromLinks.fulfilled, (state, action) => {
             state.isLoading = false
             state.isSuccess = true
-            state.scanned_emails = action.payload
         })
         .addCase(unsubscribeFromLinks.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(unsubscribeFromAll.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(unsubscribeFromAll.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.unsubscribe_task_id = action.payload
+        })
+        .addCase(unsubscribeFromAll.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(getRunningTask.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(getRunningTask.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.scan_task_id = action.payload.scan_task_id
+            state.unsubscribe_task_id = action.payload.unsubscribe_task_id
+        })
+        .addCase(getRunningTask.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(getTaskStatus.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.task_status = action.payload
+        })
+        .addCase(getTaskStatus.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(updateTaskStatus.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.progress = action.payload
+        })
+        .addCase(updateTaskStatus.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(getEmailSenders.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.email_senders = [...state.email_senders, ...action.payload]
+        })
+        .addCase(getEmailSenders.rejected, (state, action) => {
+            state.isLoading = false
+            state.isError = true
+            state.message = action.payload
+        })
+        .addCase(unsubscribeFromSenders.pending, (state) => {
+            state.isLoading = true
+        })
+        .addCase(unsubscribeFromSenders.fulfilled, (state, action) => {
+            state.isLoading = false
+            state.isSuccess = true
+            state.unsubscribe_task_id = action.payload
+        })
+        .addCase(unsubscribeFromSenders.rejected, (state, action) => {
             state.isLoading = false
             state.isError = true
             state.message = action.payload

@@ -20,9 +20,16 @@ class UnsubscribeEmailsCreate(BaseModel):
 
 
 class UnsubscribeEmail(BaseModel):
-    scanned_email_ids: List[int]
+    email_sender: List[int]
     linked_email_address: EmailStr
     page: int = 0
+
+class UnsubscribeFromAll(BaseModel):
+    linked_email_address: EmailStr
+
+class UnsubscribeFromSenders(BaseModel):
+    email_senders: List[str]
+    linked_email_address: EmailStr
 
 
 # Placeholder

@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app import crud, models, schemas
+from app import crud, models
 from app.api.deps import get_current_user
 from app.database.database import get_db
-from app.schemas.unsubscribe_links import UnsubscribeEmail
+from app.schemas.unsubscribe_links import UnsubscribeEmail, UnsubscribeFromAll, UnsubscribeFromSenders
 
 router = APIRouter()
 
@@ -45,22 +45,73 @@ def unsubscribe(
     db: Session = Depends(get_db),
     user: models.User = Depends(get_current_user),
 ) -> dict:
-    """Unsubscribe from an email.
+    """Unsubscribe from an email sender.
 
     Args:
-        unsub_info (UnsubscribeEmail): The scanned email id and linked_email
+        unsub_info (UnsubscribeEmail): The sender to unsubscribe from and linked_email
         db (Session): The db session.
         user (models.User): The session user
 
     Returns:
-        dict: The modified unsubscribe links
+        dict: The success state of the operation
     """
     return {
-        "scanned_emails": crud.unsubscribe_links.unsubscribe(
+        "success": crud.unsubscribe_links.unsubscribe(
             db,
-            scanned_email_ids=unsub_info.scanned_email_ids,
+            email_addresses=unsub_info.email_sender,
             linked_email_address=unsub_info.linked_email_address,
             user_id=user.id,
             page=unsub_info.page,
+        )
+    }
+
+@router.post("/unsubscribe_from_senders")
+def unsubscribe_from_senders(
+    *,
+    unsub_info: UnsubscribeFromSenders,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Unsubscribe from selected senders associated with this linked email address.
+
+    Args:
+        unsub_info (UnsubscribeFromSenders): Request params, includes list of senders and linked email.
+        db (Session): The db session.
+        user (models.User): The session user.
+
+    Returns:
+        dict: The task id handed off to celery
+    """
+    return {
+        "unsubscribe_task_id": crud.unsubscribe_links.unsubscribe_from_senders(
+            db=db,
+            email_senders=unsub_info.email_senders,
+            linked_email_address=unsub_info.linked_email_address,
+            user_id=user.id,
+        )
+    }
+
+@router.post("/unsubscribe_from_all")
+def unsubscribe_from_all(
+    *,
+    unsub_info: UnsubscribeFromAll,
+    db: Session = Depends(get_db),
+    user: models.User = Depends(get_current_user),
+) -> dict:
+    """Unsubscribe from all emails associated with this linked email address.
+
+    Args:
+        unsub_info (UnsubscribeFromAll): Request params, includes just linked_email_address.
+        db (Session): The db session. Defaults to Depends(get_db).
+        user (models.User): The session user. Defaults to Depends(get_current_user).
+
+    Returns:
+        dict: The task id
+    """
+    return {
+        "unsubscribe_task_id": crud.unsubscribe_links.unsubscribe_from_all(
+            db=db,
+            linked_email_address=unsub_info.linked_email_address,
+            user_id=user.id,
         )
     }

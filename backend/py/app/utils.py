@@ -1,9 +1,15 @@
+import pytz
+import secrets
+
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 from jose import jwt
 
 from app.config.config import settings
+from app.models.invite_codes import InviteCodes
+
+from sqlalchemy.orm import Session
 
 
 def generate_password_reset_token(email: str) -> str:
@@ -25,3 +31,29 @@ def verify_password_reset_token(token: str) -> Optional[str]:
         return decoded_token["email"]
     except jwt.JWTError:
         return None
+
+def generate_invite_code(db: Session, expires_in: float) -> Tuple[str, datetime]:
+    """Generate an invite code for registration.
+
+    Args:
+        db (Session): The db session
+        expires_in (float): Time in minutes to expire
+
+    Returns:
+        str: The invite code
+    """
+    # Convert expires_in to a datetime timestamp
+    expire_ts = datetime.now(tz=pytz.UTC) + timedelta(minutes=expires_in)
+
+    # Generate a 32 byte invite code
+    code = secrets.token_urlsafe(32)
+
+    # Create the db entry
+    invite_code = InviteCodes(
+        code=code,
+        expire_ts=expire_ts,
+    )
+    db.add(invite_code)
+    db.commit()
+
+    return code, expire_ts

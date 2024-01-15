@@ -4,7 +4,7 @@
 import Modal from './Modal';
 import { useState } from 'react';
 
-function UnsubscribeStaus( { scanned_email_id, unsubscribe_status, linked_email } ) {
+function UnsubscribeStatus( { scanned_email_id, unsubscribe_statuses, linked_email } ) {
 
   const [openModal, setOpenModal] = useState(false);
 
@@ -15,7 +15,7 @@ function UnsubscribeStaus( { scanned_email_id, unsubscribe_status, linked_email 
 
   return (
     <div>
-        { unsubscribe_status === 'failure' ? (
+        { unsubscribe_statuses.every( (status) => status === 'failure') ? (
                <div>
                 <p style={{ color: "red"}}>failed</p>
                 <button type='button' className='button' onClick={onClick} style={{marginBottom: '5px'}}>
@@ -31,12 +31,40 @@ function UnsubscribeStaus( { scanned_email_id, unsubscribe_status, linked_email 
       scanned_email_id={scanned_email_id}
       linked_email={linked_email} />
                 </div>
-            ) : unsubscribe_status === 'success' ? ( 
-            <p style={{color: "green"}}>success</p>
-            ) : <p>{unsubscribe_status}</p>
+            ) : unsubscribe_statuses.every( (status) => status === 'success') ? ( 
+            <div>
+              <p style={{color: "green"}}>success</p>
+              <button type='button' className='button' onClick={onClick} style={{marginBottom: '5px'}}>
+                <span className='button__text'>View Links</span>
+                <span className='button__icon'>
+                <ion-icon name="ellipsis-vertical-outline"></ion-icon>
+                </span>
+                
+                </button>
+                <Modal 
+      open={openModal} 
+      onClose={() => setOpenModal(false)}
+      scanned_email_id={scanned_email_id}
+      linked_email={linked_email} />
+            </div>
+            ) : <div>
+            <p style={{color: "orange"}}>Success and Failed</p>
+            <button type='button' className='button' onClick={onClick} style={{marginBottom: '5px'}}>
+                <span className='button__text'>View Links</span>
+                <span className='button__icon'>
+                <ion-icon name="ellipsis-vertical-outline"></ion-icon>
+                </span>
+                
+                </button>
+                <Modal 
+      open={openModal} 
+      onClose={() => setOpenModal(false)}
+      scanned_email_id={scanned_email_id}
+      linked_email={linked_email} />
+            </div>
         }
     </div>
   )
 }
 
-export default UnsubscribeStaus
+export default UnsubscribeStatus

@@ -31,6 +31,9 @@ class Settings(BaseSettings):
             host=values.get("POSTGRES_SERVER"),
             path=f"/{values.get('POSTGRES_DB') or ''}",
         )
+    
+    CELERY_BROKER_URL: str
+    CELERY_RESULT_BACKEND: str
 
     FIRST_SUPERUSER: EmailStr
     FIRST_SUPERUSER_PASSWORD: str

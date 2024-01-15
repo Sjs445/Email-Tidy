@@ -12,7 +12,7 @@ function LinkedEmail( {email} ) {
             Linked on { new Date(email.insert_ts).toLocaleString('en-US')}
         </div>
         <h2>{email.email}</h2>
-        <button className="btn btn-block" onClick={() => navigate('/linked_email/' + email.id + `?linked_email=${email.email}`) }>View</button>
+        <button className="btn btn-block" onClick={() => navigate(`/linked_email/${email.id}?linked_email=${email.email}`) }>View</button>
         <button className="close" onClick={() => dispatch(deleteLinkedEmail(
             email.id
         ))}>X</button>

@@ -5,8 +5,6 @@ from pydantic import BaseModel, EmailStr
 
 class ScanEmails(BaseModel):
     linked_email_id: int
-    how_many: Optional[int] = 10
-    order_by: Optional[str] = "desc"
 
 
 class ScannedEmailsCreate(BaseModel):
@@ -18,3 +16,8 @@ class ScannedEmailsCreate(BaseModel):
 class ScannedEmailUpdate(BaseModel):
     email_from: EmailStr
     linked_email_address: EmailStr
+
+class GetScannedEmails(BaseModel):
+    email_from: str
+    linked_email: EmailStr
+    page: int = 0

@@ -13,6 +13,12 @@ const initialState = {
 export const createLinkedEmail = createAsyncThunk('linked_emails/create', async (linkedEmailData, thunkAPI) => {
     try {
         const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
         return await linkedEmailService.createLinkedEmail(linkedEmailData, token);
     } catch (error) {
         const message = (error.response && error.response.data && error.response.data.detail) || error.message || error.toString();
@@ -24,6 +30,12 @@ export const createLinkedEmail = createAsyncThunk('linked_emails/create', async 
 export const getLinkedEmails = createAsyncThunk('linked_emails/getAll', async (_, thunkAPI) => {
     try {
         const token = thunkAPI.getState().auth.user;
+
+        // If there's no token reject early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+
         return await linkedEmailService.getLinkedEmails(token);
     } catch (error) {
         const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();
@@ -35,6 +47,12 @@ export const getLinkedEmails = createAsyncThunk('linked_emails/getAll', async (_
 export const deleteLinkedEmail = createAsyncThunk('linked_emails/delete', async (id, thunkAPI) => {
     try {
         const token = thunkAPI.getState().auth.user;
+
+        // If there's no token return early
+        if ( !token ) {
+            return thunkAPI.rejectWithValue("Unauthorized");
+        }
+        
         return await linkedEmailService.deleteLinkedEmail(id, token);
     } catch (error) {
         const message = (error.response && error.response.data && error.response.data.message) || error.message || error.toString();

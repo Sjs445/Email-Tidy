@@ -1,9 +1,6 @@
-import re
-
 from typing import List, Optional
 
 from fastapi import HTTPException
-from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 
 from app.crud.base import CRUDBase
@@ -119,6 +116,26 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         db.commit()
         db.refresh(db_obj)
         return db_obj
+    
+    def get_task_ids(
+        self, db: Session, *, linked_email_address: str, user_id: int,
+    ) -> dict:
+        """Get the task ids for this linked email address.
+
+        Args:
+            db (Session): The db session
+            linked_email_address (str): The linked_email we're checking for
+            user_id (int): The session user_id
+
+        Returns:
+            dict: The task ids
+        """
+        linked_email = self.get_single_by_user_id(db, user_id=user_id, linked_email_address=linked_email_address)
+
+        return {
+            'scan_task_id': linked_email.scan_task_id,
+            'unsubscribe_task_id': linked_email.unsubscribe_task_id,
+        }
 
 
 linked_email = CRUDLinkedEmails(LinkedEmails)

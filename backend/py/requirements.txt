@@ -14,3 +14,7 @@ requests==2.28.2
 lxml==4.9.2
 pytest==7.2.1
 python-multipart
+flower==2.0.1
+celery==5.3.4
+redis==5.0.0
+charset-normalizer==3.3.0

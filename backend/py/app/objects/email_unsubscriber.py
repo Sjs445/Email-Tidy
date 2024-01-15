@@ -1,10 +1,12 @@
 import email
-import os
 import quopri
 import re
-import requests
+import os
 import lxml.html
 
+from celery import Celery
+from celery import Task
+from charset_normalizer import from_bytes
 from datetime import datetime
 from sqlalchemy.orm import Session
 from email.header import decode_header
@@ -13,9 +15,13 @@ from email.header import Header
 from email.utils import parsedate_to_datetime
 from fastapi import HTTPException
 from imaplib import IMAP4_SSL
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 from app.models import ScannedEmails, UnsubscribeLinks, UnsubscribeStatus
+from app.config.config import settings
+
+celery = Celery(__name__)
+
 
 
 class EmailUnsubscriber:
@@ -55,8 +61,6 @@ class EmailUnsubscriber:
         # Now login to the imap server
         imap_server = self.SUPPORTED_IMAP_SERVERS[email_type]
         self.imap = IMAP4_SSL(imap_server)
-
-        self.unsubscriber_info: List[dict] = []
 
     def __del__(self) -> None:
         """Disconnect from the imap server upon calling the destructor."""
@@ -117,7 +121,7 @@ class EmailUnsubscriber:
         return domain
 
     def get_unsubscribe_links_from_inbox(
-        self, db: Session, how_many: int = None, order_by: str = "desc"
+        self, linked_email_id: int, user_id: int
     ) -> List[dict]:
         """Iterate through the Inbox looking through the email body for
         words in `self.UNSUBSCRIBE_KEYWORDS`.
@@ -125,11 +129,8 @@ class EmailUnsubscriber:
         possible link that is following the position of said found keyword.
 
         Args:
-            db (Session): The db session
-            how_many (int, optional): Number of emails to fetch from inbox descending.
-                Defaults to all emails in the Inbox.
-            order_by (str, optional): Method of getting the emails, i.e. 'desc', 'asc'.
-                Defaults to 'desc'.
+            linked_email_id (int): The id of the linked email
+            user_id (int): The user id of the actor
 
         Returns:
             List[dict]: A list of data describing the emails scanned in this format.
@@ -144,14 +145,6 @@ class EmailUnsubscriber:
                 ]
         """
 
-        # Throttle to 30 emails at once.
-        # TODO make this a background task to allow for scanning more emails.
-        if how_many > 30:
-            raise HTTPException(
-                status_code=400,
-                detail="Error you can not scan more than 30 emails at a time"
-            )
-
         # Readonly does not mark emails as SEEN
         status, messages = self.imap.select("INBOX", readonly=True)
         if status != "OK":
@@ -164,54 +157,61 @@ class EmailUnsubscriber:
         # we can return early.
         if not messages or not messages[0] or not int(messages[0]):
             return
+        
+        from app.celery_worker import scan_emails
 
         number_of_emails = int(messages[0])
 
-        # set how we fetch and order getting the emails.
-        range_params: tuple = ()
-        if order_by == "desc":
-            how_many = how_many or 0
-            range_params = (number_of_emails, number_of_emails - how_many, -1)
-        elif order_by == "asc":
-            how_many = how_many or number_of_emails
-            range_params = (0, how_many)
-        else:
-            how_many = how_many or number_of_emails
-            range_params = (how_many, 0, -1)
+        # Fetch and scan emails by descending, that is the top of the inbox to the end.
+        range_params = (number_of_emails, 0, -1)
 
-        # We can't fetch more emails than exist in the Inbox.
-        if how_many > number_of_emails:
-            raise HTTPException(
-                status_code=400,
-                detail="how_many can't be greater than total number of emails in Inbox:"
-                f" {number_of_emails}",
+        # Hand off the work to celery and return the job_id
+        task = scan_emails.delay(self.email_type, linked_email_id, user_id, range_params)
+        return task.task_id
+
+    def _do_scan_emails(self, task: Task, range_params: tuple, db: Session ) -> int:
+        """Scan the emails in the inbox.
+
+        Args:
+            task (Task): The celery task object
+            range_params (tuple): The range params used to fetch emails from the inbox
+            db (Session): The db session
+
+        Raises:
+            Exception: If we can't fetch the email
+            Exception: If we can't fetch the internal date of the email
+
+        Returns:
+            int: The number of emails that found unsubscribe links
+        """
+        # Readonly does not mark emails as SEEN
+        status, messages = self.imap.select("INBOX", readonly=True)
+        if status != "OK":
+            raise Exception(
+                f"Could not select Inbox...\tGot status: {status}",
             )
-
-        # TODO? Turn these into logs
-        print("Fetching emails...")
+        
+        # TODO Turn these into logs
+        # print("Fetching emails...")
         current_iteration = 0
-        # print_progress(
-        #     current_iteration=current_iteration,
-        #     total=how_many,
-        #     prefix="Progress:",
-        #     suffix="Complete",
-        # )
-        scanned_emails = []
+        scanned_emails = 0
+        total_emails = range_params[0]
+
         for i in range(*range_params):
             response, msg = self.imap.fetch(str(i), "(RFC822)")
 
             if response != "OK":
                 raise Exception(f"Unable to fetch email: {i}\Response: {response}")
 
-            # Get the email as an email object
+            # Get the email as a message object
             email_msg = email.message_from_bytes(msg[0][1])
 
             # Get the time the email was added to the inbox.
             status, data = self.imap.fetch(str(i), "(INTERNALDATE)")
 
-            if response != "OK":
+            if status != "OK":
                 raise Exception(f"Unable to fetch INTERNALDATE for email: {i}")
-            
+
             str_datetime = data[0].decode().split('"')[1]
             datetime_obj = parsedate_to_datetime(str_datetime)
 
@@ -219,18 +219,21 @@ class EmailUnsubscriber:
             scanned_email = self._scan_email_message_obj(db, email_msg, self.email, datetime_obj)
 
             if scanned_email:
-                scanned_emails.append(scanned_email)
+                scanned_emails += 1
 
+            # Update the celery task state to log our progress
+            task.update_state(
+                state='PROGRESS',
+                meta={
+                    'current': current_iteration,
+                    'total': total_emails,
+                }
+            )
             current_iteration += 1
-            # print_progress(
-            #     current_iteration=current_iteration,
-            #     total=how_many,
-            #     prefix="Progress:",
-            #     suffix="Complete",
-            # )
 
         # Close the INBOX
         self.imap.close()
+
         return scanned_emails
 
     @classmethod
@@ -258,10 +261,9 @@ class EmailUnsubscriber:
                     "unsubscribe_status": "pending",
                 },
         """
-        # Get the email sender and convert from bytes if necessary
-        email_from, email_subject = cls.decode_from_and_subject(
-            email_msg["From"], email_msg["Subject"]
-        )
+        # Get the email sender and subject and decode if necessary
+        email_from = cls.decode_email_header(email_msg["From"])
+        email_subject = cls.decode_email_header(email_msg["Subject"])
 
         # Don't add scanned emails that already exist
         existing_email = (
@@ -294,7 +296,18 @@ class EmailUnsubscriber:
 
         # Add all unsubscribe links to the unsubscribe_links table
         unsubscribe_link_objs = []
-        for link in unsubscribe_links:
+
+        # Convert to a set and then back to a list to remove duplicate links
+        for link in list(set(unsubscribe_links)):
+
+            # Don't add an unsubscribe link that exists in the database already
+            link_exists = db.execute(
+                "SELECT EXISTS(SELECT 1 FROM unsubscribe_links WHERE link = :link AND linked_email_address = :linked_email_address)",
+                {"link": link, "linked_email_address": linked_email_address}
+            ).scalar()
+            if link_exists:
+                continue
+
             unsubscribe_link_objs.append(
                 UnsubscribeLinks(
                     link=link,
@@ -315,40 +328,37 @@ class EmailUnsubscriber:
         }
 
     @staticmethod
-    def decode_from_and_subject(
-        email_from: Header = None, email_subject: Header = None
-    ) -> Tuple[str, str]:
-        """Decode the from and subject.
+    def decode_email_header(
+        email_header: Header = None
+    ) -> str:
+        """Decode the email header. We first decode the email header using
+        pythons email library method decode_header. This gives a list of tuples
+        containing either already decoded data or still encoded data.
+        If the data is still encoded decode it given it's encoding.
 
         Args:
-            email_from (Header, optional): Email From Header. Defaults to None.
-            email_subject (Header, optional): Email Subject. Defaults to None.
+            email_header (Header, optional): The email header to decode
 
         Returns:
-            Tuple[str, str]: The email_from and email_subject
+            str: The decoded email header as a string
         """
-        email_from_bytes, from_encoding = decode_header(email_from)[0]
-        email_subject_bytes, subject_encoding = decode_header(email_subject)[0]
+        decoded_header = decode_header(email_header)
 
-        # Decode the email_from and email_subject from bytes. We do this by doing
-        # a series of checks:
-        #
-        #   1. If the from/subject is of type bytes we decode it from the given
-        #       encoding.
-        #   2. The encoding may have not been returned from decode_header().
-        #       In this case we can just perform a type conversion to string.
-        #
-        if isinstance(email_from_bytes, bytes) and from_encoding:
-            email_from_str = email_from_bytes.decode(from_encoding)
-        else:
-            email_from_str = str(email_from_bytes)
+        header = ""
+        for message in decoded_header:
+            if isinstance(message[0], bytes):
+                encoding = message[1]
 
-        if isinstance(email_subject_bytes, bytes) and subject_encoding:
-            email_subject_str = email_subject_bytes.decode(subject_encoding)
-        else:
-            email_subject_str = str(email_subject_bytes)
+                # Special case, encoding is "unknown-8bit" use charset normalizer
+                # to decode. This 'guesses' the encoding, but is right 99% of the time.
+                if encoding is not None and encoding == "unknown-8bit":
+                    header += str(from_bytes(message[0]).best())
+                else:
+                    header += message[0].decode(encoding or 'ASCII')
+            else:
+                header += message[0]
 
-        return email_from_str, email_subject_str
+        return header
 
     @classmethod
     def _get_unsubscribe_links_from_email(

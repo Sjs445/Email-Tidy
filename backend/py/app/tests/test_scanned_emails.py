@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 from unittest import mock
 from datetime import datetime
 
-from app.crud import crud_user, crud_linked_emails, crud_unsubscribe_links
+from app.crud import crud_user, crud_linked_emails
 from app.main import app
 from app.objects.email_unsubscriber import EmailUnsubscriber
 from app.schemas import LinkedEmailsCreate
@@ -12,7 +12,6 @@ from app.test_utils import (
     generate_auth_header,
     generate_email_message,
 )
-from app.tests.html_emails.basic_promo import basic_promo
 from app.tests.html_emails.general_template import general_template
 
 
@@ -71,20 +70,25 @@ class TestLinkEmail:
             )
 
         # Fetch the list of scanned_emails for page 0
-        results = self.client.get(
-            "/scanned_emails/0?linked_email=email@yahoo.com",
+        scanned_email_params = {
+            "linked_email": "email@yahoo.com",
+            "email_from": "spammer@email.com",
+            "page": 0,
+        }
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails = results.get("scanned_emails", [])
 
         expected_scanned_emails_page_0 = [
             {
-                "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 1,
-                "linked_email_address": "email@yahoo.com",
+                "unsubscribe_link_count": 1 if i == 0 else 0,
                 "subject": f"Spam Email - {i}",
-                "unsubscribe_status": "pending",
+                "total_count": 20,
+                "unsubscribe_statuses": ["pending"] if i == 0 else None
             }
             for i in range(10)
         ]
@@ -92,20 +96,21 @@ class TestLinkEmail:
 
         # Fetch the list of scanned emails for page 1
         # it should contain the rest of the scanned emails
-        results = self.client.get(
-            "/scanned_emails/1?linked_email=email@yahoo.com",
+        scanned_email_params["page"] = 1
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails2 = results.get("scanned_emails", [])
 
         expected_scanned_emails_page_1 = [
             {
-                "from": "spammer@email.com",
                 "id": mock.ANY,
-                "link_count": 1,
-                "linked_email_address": "email@yahoo.com",
+                "unsubscribe_link_count": 0,
                 "subject": f"Spam Email - {i}",
-                "unsubscribe_status": "pending",
+                "unsubscribe_statuses": None,
+                "total_count": 20,
             }
             for i in range(10, 20)
         ]
@@ -113,15 +118,17 @@ class TestLinkEmail:
 
         # Fetch the list of scanned emails for page 2
         # it should not contain anymore emails.
-        results = self.client.get(
-            "/scanned_emails/2",
+        scanned_email_params["page"] = 2
+        results = self.client.post(
+            "/scanned_emails/get_scanned_emails",
+            json=scanned_email_params,
             headers=self.auth_header,
         ).json()
         scanned_emails3 = results.get("scanned_emails", [])
         assert scanned_emails3 == []
 
         # Fetch a list of unsubscribe links for a certain scanned_email_id and linked_email
-        scanned_email_id = scanned_emails2[0].get("id")
+        scanned_email_id = scanned_emails[0].get("id")
         results = self.client.get(
             f"/unsubscribe_links/unsubscribe_links_by_email/{scanned_email_id}/?linked_email=email@yahoo.com",
             headers=self.auth_header,
@@ -139,3 +146,19 @@ class TestLinkEmail:
         ]
 
         assert results.get("links", []) == expected_unsuscribe_links
+
+        # Fetch a list of email senders
+        results = self.client.get(
+            "/scanned_emails/senders/0?linked_email=email@yahoo.com",
+            headers=self.auth_header,
+        ).json()
+
+        assert results.get("senders", []) == [
+            {
+                "email_from": "spammer@email.com",
+                "scanned_email_count": 20,
+                "unsubscribe_link_count": 1,
+                "total_count": 1,
+                "unsubscribe_statuses": ["pending"],
+            }
+        ]

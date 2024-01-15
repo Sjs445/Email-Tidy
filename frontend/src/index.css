@@ -172,12 +172,16 @@ h3 {
 
 .btn-prev {
   margin-top: 5px;
+  margin-right: 5px;
+  margin-left: 5px;
   display: inline-block;
 }
 
 .btn-next {
   display: inline-block;
   margin-top: 5px;
+  margin-right: 5px;
+  margin-left: 5px;
 }
 
 .loadingSpinnerContainer {
@@ -286,7 +290,7 @@ h3 {
 
 .content-table {
   border-collapse: collapse;
-  margin: 25px 0;
+  margin: auto;
   font-size: 0.9em;
   min-width: 400px;
   border-radius: 5px 5px 0 0;
@@ -395,4 +399,25 @@ h3 {
 .button__icon {
 	font-size: 1.25em;
 	background: rgba(0, 0, 0, 0.08);
+}
+
+/* Progress Bar */
+.progressbar{
+	position: relative;
+	overflow: hidden;
+	width: 350px;
+	height: 35px;
+  margin: 25px;
+	border-radius: 5px;
+	background-color: #eee;
+}
+
+.progressPercent{
+	font-weight: 600;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%,-50%);
+	color: #eee;
+	text-shadow: -1px 0 #555, 0 1px #555, 1px 0 #555, 0 -1px #555;
 }
