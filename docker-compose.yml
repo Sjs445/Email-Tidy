@@ -44,6 +44,17 @@ services:
       - type: bind
         source: ./frontend
         target: /app
+
+  nginx:
+    container_name: emailtidy-nginx
+    image: emailtidy-nginx
+    depends_on:
+      - emailtidy-react
+    restart: always
+    build:
+      context: ./backend/nginx
+    ports:
+      - 80:80
     
   emailtidy-redis:
     container_name: emailtidy-redis

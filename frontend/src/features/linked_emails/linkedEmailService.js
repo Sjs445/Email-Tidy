@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = '/linked_emails/';
+const API_URL = '/emailtidy-py/linked_emails/';
 
 // Create new linked email
 const createLinkedEmail = async ( linkedEmailData, token ) => {

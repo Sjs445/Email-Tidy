@@ -1,9 +1,11 @@
 import axios from 'axios';
 
+const API_URL = '/emailtidy-py'
+
 // Register user
 const register = async (userData) => {
 
-    const response = await axios.post('/users/register', userData);
+    const response = await axios.post(API_URL + '/users/register', userData);
     
     if (response.data.access_token) {
         localStorage.setItem('access_token', response.data.access_token);
@@ -16,7 +18,7 @@ const register = async (userData) => {
 const login = async (userData) => {
 
     // Send the login request as form data. Because OAuth2PasswordRequestForm requires it.
-    const response = await axios.post('/login/access-token', {
+    const response = await axios.post(API_URL + '/login/access-token', {
             username: userData.username,
             password: userData.password,
         },
@@ -46,7 +48,7 @@ const test_token = async (token) => {
             Authorization: `Bearer ${token}`
         }
     }
-    const response = await axios.post('/login/test-token', {}, config);
+    const response = await axios.post(API_URL + '/login/test-token', {}, config);
 
     return response.data;
 }

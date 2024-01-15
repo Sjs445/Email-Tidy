@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = '/unsubscribe_links/';
+const API_URL = '/emailtidy-py/unsubscribe_links/';
 
 // Get unsubscribe links by a scanned email id
 const getUnsubscribeLinks = async ( unsubscribeLinksData, token ) => {

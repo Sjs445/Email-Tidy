@@ -20,5 +20,6 @@ def init_db(db: Session) -> None:
             is_superuser=True,
             first_name="admin",
             last_name="admin",
+            invite_code='',
         )
         user = crud.user.create(db, obj_in=user_in)  # noqa: F841

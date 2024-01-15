@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_URL = '/scanned_emails/';
+const API_URL = '/emailtidy-py/scanned_emails/';
 
 // Scan a linked email for spam. Starts a running task and returns a task id.
 const scanLinkedEmail = async ( scanEmailData, token ) => {
@@ -36,7 +36,7 @@ const unsubscribeFromLinks = async ( unsubscribeData, token ) => {
         }
     }
 
-    const response = await axios.post("/unsubscribe_links/", unsubscribeData, config);
+    const response = await axios.post("/emailtidy-py/unsubscribe_links/", unsubscribeData, config);
 
     return response.data.success;
 }
@@ -49,7 +49,7 @@ const unsubscribeFromAll = async ( unsubscribeData, token ) => {
         }
     }
 
-    const response = await axios.post("/unsubscribe_links/unsubscribe_from_all", unsubscribeData, config);
+    const response = await axios.post("/emailtidy-py/unsubscribe_links/unsubscribe_from_all", unsubscribeData, config);
 
     return response.data.unsubscribe_task_id;
 }
@@ -62,7 +62,7 @@ const getRunningTask = async ( linked_email, token ) => {
         }
     }
 
-    const response = await axios.get(`/linked_emails/tasks/${linked_email}`, config);
+    const response = await axios.get(`/emailtidy-py/linked_emails/tasks/${linked_email}`, config);
 
     return response.data;
 }
@@ -75,7 +75,7 @@ const getTaskStatus = async ( task_id, token ) => {
         }
     }
 
-    const response = await axios.get(`/scanned_emails/task_status/${task_id}`, config);
+    const response = await axios.get(`${API_URL}task_status/${task_id}`, config);
 
     return response.data;
 }
@@ -88,7 +88,7 @@ const getEmailSenders = async ( emailSenderData, token ) => {
         }
     }
 
-    const response = await axios.get(`/scanned_emails/senders/${emailSenderData.page}?linked_email=${emailSenderData.linked_email}`, config);
+    const response = await axios.get(`${API_URL}senders/${emailSenderData.page}?linked_email=${emailSenderData.linked_email}`, config);
 
     return response.data.senders;
 }
@@ -101,7 +101,7 @@ const unsubscribeFromSenders = async ( unsubscribeData, token ) => {
         }
     }
 
-    const response = await axios.post("/unsubscribe_links/unsubscribe_from_senders", unsubscribeData, config);
+    const response = await axios.post("/emailtidy-py/unsubscribe_links/unsubscribe_from_senders", unsubscribeData, config);
 
     return response.data.unsubscribe_task_id;
 }
