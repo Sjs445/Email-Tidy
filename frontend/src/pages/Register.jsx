@@ -5,6 +5,7 @@ import {toast} from 'react-toastify';
 import {FaUser} from 'react-icons/fa';
 import { register, reset} from '../features/auth/authSlice';
 import Spinner from '../components/Spinner';
+import PasswordChecklist from "react-password-checklist";
 
 function Register() {
     const [formData, setFormData] = useState({
@@ -81,6 +82,7 @@ function Register() {
         <FaUser />Register
     </h1>
     <p>Please create an account</p>
+    <p>We will never send you spam or junk email!</p>
   </section>
 
   <section className='form'>
@@ -100,6 +102,13 @@ function Register() {
         <div className='form-group'>
         <input type='password' className='form-control' id='password2' name='password2' value={password2} placeholder='Confirm your password' onChange={onChange} />
         </div>
+        <PasswordChecklist
+				rules={["minLength","specialChar","number","capital","match"]}
+				minLength={8}
+				value={password}
+				valueAgain={password2}
+                invalidColor='#FFFFFF'
+		/>
         <div className='form-group'>
         <input type='text' className='form-control' id='invite_code' name='invite_code' value={invite_code} placeholder='Enter your invite code' onChange={onChange} />
         </div>

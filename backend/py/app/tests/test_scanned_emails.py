@@ -82,6 +82,7 @@ class TestLinkEmail:
         ).json()
         scanned_emails = results.get("scanned_emails", [])
 
+        # FIXME: The results set returned is sorted by string so this fails
         expected_scanned_emails_page_0 = [
             {
                 "id": mock.ANY,

@@ -15,11 +15,11 @@ function Dashboard() {
   const { user } = useSelector( (state) => state.auth );
   const { linked_emails, isLoading, isError, message } = useSelector( (state) => state.email)
 
-  // If there's no user token send them to the login page.
+  // If there's no user token send them to the getting started page
   // If the token exists verify it's a valid token before fetching for linked emails.
   useEffect( () => {
     if (!user) {
-      navigate('/login');
+      navigate('/getting-started');
     } else {
       dispatch(test_token())
         .then( () => dispatch(getLinkedEmails()) )

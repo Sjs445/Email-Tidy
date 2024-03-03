@@ -38,6 +38,7 @@ def generate_user(db: Session) -> User:
             password="".join(
                 random.choice(string.ascii_letters + string.digits) for _ in range(12)
             ),
+            invite_code="",
         ),
     )
     return user

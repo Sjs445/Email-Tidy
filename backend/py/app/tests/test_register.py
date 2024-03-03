@@ -48,15 +48,22 @@ class TestRegister:
         }
 
         # Try and register without an invite code
-        # with pytest.raises(Exception):
         response: dict = self.client.post(
             "/users/register",
             json=register_params,
         ).json()
         assert response.get("detail") == [{'loc': ['body', 'invite_code'], 'msg': 'field required', 'type': 'value_error.missing'}]
 
-        # Register with an invalid invite code
+        # Try and register with invalid password format
         register_params["invite_code"] = "123abc"
+        response: dict = self.client.post(
+            "/users/register",
+            json=register_params,
+        ).json()
+        assert response.get("detail") == "Password must have uppercase: 1 "
+
+        # Register with an invalid invite code
+        register_params["password"] = "123Abc!@"
         response: dict = self.client.post(
             "/users/register",
             json=register_params,

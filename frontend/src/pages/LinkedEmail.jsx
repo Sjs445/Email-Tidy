@@ -63,7 +63,7 @@ function LinkedEmail() {
   // If the token exists verify it's a valid token before fetching for email senders.
   useEffect( () => {
     if (!user) {
-      navigate('/login');
+      navigate('/getting-started');
     } else {
       dispatch(test_token())
         .then( () => dispatch(getRunningTask(linked_email)))

@@ -1,0 +1,102 @@
+version: "3.3"
+services:
+
+# NOTE: This docker compose file is for development
+# To run the app run `docker-compose -f docker-compose.dev.yml up --build`.
+
+  emailtidy-db:
+    container_name: emailtidy-db
+    env_file:
+      - .env
+    image: email-tidy:db
+    build:
+      context: ./backend/db
+    ports:
+      - 5432:5432
+    volumes:
+      - db-data:/var/lib/postgresql/data:cached
+
+  emailtidy-py:
+    container_name: emailtidy-py
+    env_file:
+      - .env
+    image: email-tidy:py
+    depends_on:
+      - emailtidy-db
+    build:
+      context: ./backend/py
+    ports:
+      - 8000:8000
+    volumes:
+      # Bind these volumes for easy development without having to restart the containers. Remove for production.
+      - type: bind
+        source: ./backend/py/app
+        target: /app
+  
+  emailtidy-react:
+    container_name: emailtidy-react
+    image: email-tidy:react
+    depends_on:
+      - emailtidy-py
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    ports:
+      - 3000:3000
+    volumes:
+    # Bind these volumns for easy development without having to restart the containers. Remove for production.
+      - type: bind
+        source: ./frontend
+        target: /app
+
+  emailtidy-nginx:
+    container_name: emailtidy-nginx
+    image: email-tidy:nginx
+    depends_on:
+      - emailtidy-react
+    restart: always
+    build:
+      context: ./backend/nginx
+    ports:
+      - 80:80
+    
+  emailtidy-redis:
+    container_name: emailtidy-redis
+    image: redis:7.2.1-alpine
+
+  emailtidy-celery:
+    container_name: emailtidy-celery
+    image: email-tidy:celery
+    env_file:
+      - .env
+    build:
+      context: ./backend/py
+    command: celery -A celery_worker.celery worker --loglevel=info
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - emailtidy-py
+      - emailtidy-redis
+
+  emailtidy-flower:
+    container_name: emailtidy-flower
+    image: email-tidy:flower
+    env_file:
+      - .env
+    build:
+      context: ./backend/py
+    command: celery -A celery_worker.celery flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL}
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
+    depends_on:
+      - emailtidy-py
+      - emailtidy-redis
+      - emailtidy-celery
+
+
+volumes:
+  db-data:

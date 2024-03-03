@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert
+    kompose.version: 1.26.0 (40646f47)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: emailtidy-db
+  name: emailtidy-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: emailtidy-db
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert
+        kompose.version: 1.26.0 (40646f47)
+      creationTimestamp: null
+      labels:
+        io.kompose.service: emailtidy-db
+    spec:
+      containers:
+        - env:
+            - name: CELERY_BROKER_URL
+              valueFrom:
+                configMapKeyRef:
+                  key: CELERY_BROKER_URL
+                  name: env
+            - name: CELERY_RESULT_BACKEND
+              valueFrom:
+                configMapKeyRef:
+                  key: CELERY_RESULT_BACKEND
+                  name: env
+            - name: EMAIL_CRYPT_MASTER_PASS
+              valueFrom:
+                configMapKeyRef:
+                  key: EMAIL_CRYPT_MASTER_PASS
+                  name: env
+            - name: FIRST_SUPERUSER
+              valueFrom:
+                configMapKeyRef:
+                  key: FIRST_SUPERUSER
+                  name: env
+            - name: FIRST_SUPERUSER_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: FIRST_SUPERUSER_PASSWORD
+                  name: env
+            - name: POSTGRES_DB
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_DB
+                  name: env
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_PASSWORD
+                  name: env
+            - name: POSTGRES_SERVER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_SERVER
+                  name: env
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env
+          image: zimd00d/email-tidy:db
+          name: emailtidy-db
+          ports:
+            - containerPort: 5432
+          resources: {}
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: db-data
+      restartPolicy: Always
+      volumes:
+        - name: db-data
+          persistentVolumeClaim:
+            claimName: db-data
+status: {}

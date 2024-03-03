@@ -3,6 +3,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from './components/Headers';
 import Dashboard from './pages/Dashboard';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import LinkedEmail from './pages/LinkedEmail';
@@ -16,6 +17,7 @@ function App() {
       <Header />
       <Routes>
         <Route path='/' element={<Dashboard />} />
+        <Route path='/getting-started' element={<Landing /> } />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/linked_email/:id' element={<LinkedEmail />} />

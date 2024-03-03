@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-service
+  annotations:
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: emailtidy-react-service
+                port:
+                  number: 3000
+          - path: /emailtidy-py/
+            pathType: Prefix
+            backend:
+              service:
+                name: emailtidy-py-service
+                port:
+                  number: 5000

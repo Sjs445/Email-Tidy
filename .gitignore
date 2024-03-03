@@ -129,3 +129,6 @@ dmypy.json
 .pyre/
 
 .vscode/
+
+# Kubernetes env files
+env-configmap.yaml

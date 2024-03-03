@@ -1,11 +1,15 @@
 version: "3.3"
 services:
 
+# NOTE: This docker compose file is for production and only used for building the prod containers.
+# To build and push the containers use build_and_push_prod_containers.sh
+# For development see docker-compose.dev.yml
+
   emailtidy-db:
     container_name: emailtidy-db
     env_file:
       - .env
-    image: emailtidy-db
+    image: zimd00d/email-tidy:db
     build:
       context: ./backend/db
     ports:
@@ -17,37 +21,27 @@ services:
     container_name: emailtidy-py
     env_file:
       - .env
-    image: emailtidy-py
+    image: zimd00d/email-tidy:py
     depends_on:
       - emailtidy-db
     build:
       context: ./backend/py
     ports:
       - 8000:8000
-    volumes:
-      # Bind these volumes for easy development without having to restart the containers. Remove for production.
-      - type: bind
-        source: ./backend/py/app
-        target: /app
   
   emailtidy-react:
     container_name: emailtidy-react
-    image: emailtidy-react
+    image: zimd00d/email-tidy:react
     depends_on:
       - emailtidy-py
     build:
       context: ./frontend
     ports:
       - 3000:3000
-    volumes:
-    # Bind these volumns for easy development without having to restart the containers. Remove for production.
-      - type: bind
-        source: ./frontend
-        target: /app
 
-  nginx:
+  emailtidy-nginx:
     container_name: emailtidy-nginx
-    image: emailtidy-nginx
+    image: zimd00d/email-tidy:nginx
     depends_on:
       - emailtidy-react
     restart: always
@@ -62,13 +56,12 @@ services:
 
   emailtidy-celery:
     container_name: emailtidy-celery
+    image: zimd00d/email-tidy:celery
     env_file:
       - .env
     build:
       context: ./backend/py
     command: celery -A celery_worker.celery worker --loglevel=info
-    volumes:
-      - ./backend/py/app:/app
     environment:
       - CELERY_BROKER_URL=${CELERY_BROKER_URL}
       - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND}
@@ -78,6 +71,7 @@ services:
 
   emailtidy-flower:
     container_name: emailtidy-flower
+    image: zimd00d/email-tidy:flower
     env_file:
       - .env
     build:
