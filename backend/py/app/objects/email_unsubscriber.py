@@ -38,7 +38,7 @@ class EmailUnsubscriber:
     ]
     SUPPORTED_IMAP_SERVERS = {
         "yahoo": "imap.mail.yahoo.com",
-        "google": "imap.gmail.com",
+        "gmail": "imap.gmail.com",
     }
 
     def __init__(self, email_type: str) -> None:

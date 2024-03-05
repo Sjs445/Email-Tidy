@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import { UseSelector, useDispatch } from 'react-redux';
+import {useNavigate} from 'react-router-dom';
 import {toast} from 'react-toastify';
 import {createLinkedEmail} from '../features/linked_emails/linkedEmailSlice';
 
@@ -11,6 +12,7 @@ function LinkedEmailForm() {
 
     const { email, password } = formData;
 
+    const navigate = useNavigate();
     const dispatch = useDispatch();
 
     const onChange = (e) => {
@@ -39,6 +41,7 @@ function LinkedEmailForm() {
   return <section className='form'>
     <form onSubmit={onSubmit}>
         <div className='form-group'>
+            <p>Don't know how to create a third party password for your email? For instructions click <a onClick={() => navigate('/help')} style={{textDecoration:'underline', cursor:'pointer'}}>here.</a></p>
             <label htmlFor='email'>Linked Email</label>
             <input 
               type='text'

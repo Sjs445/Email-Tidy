@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import LinkedEmail from './pages/LinkedEmail';
 import ScannedEmails from './pages/ScannedEmails';
+import Help from './pages/Help';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
       <Routes>
         <Route path='/' element={<Dashboard />} />
         <Route path='/getting-started' element={<Landing /> } />
+        <Route path='/help' element={<Help /> } />
         <Route path='/login' element={<Login />} />
         <Route path='/register' element={<Register />} />
         <Route path='/linked_email/:id' element={<LinkedEmail />} />
