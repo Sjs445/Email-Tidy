@@ -57,7 +57,7 @@ def scan_emails(self, domain: str, linked_email_id: int, user_id: int, range_par
         domain = EmailUnsubscriber.get_domain_from_email(
             email_address=linked_email.email
         )
-        email_unsubscriber = EmailUnsubscriber(email_type=domain)
+        email_unsubscriber = EmailUnsubscriber(email_type=domain, imap_server=linked_email.imap_server)
 
         # Login the user and scan the emails.
         if not email_unsubscriber.login(

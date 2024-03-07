@@ -41,25 +41,26 @@ class EmailUnsubscriber:
         "gmail": "imap.gmail.com",
     }
 
-    def __init__(self, email_type: str) -> None:
+    def __init__(self, email_type: str, imap_server: str = None) -> None:
         """Connect to the email's imap server by email_type.
 
         Args:
             email_type (str): The email type.
+            imap_server (str, optional): Use this imap_server to connect to
 
         Raises:
             Exception: If email_type is not supported.
         """
-        if email_type not in self.SUPPORTED_IMAP_SERVERS:
+        if email_type not in self.SUPPORTED_IMAP_SERVERS and not imap_server:
             raise HTTPException(
-                status_code=400, detail=f"{email_type} is not a supported email yet."
+                status_code=400, detail=f"{email_type} is not supported without the imap_server"
             )
 
         self.email_type = email_type
         self.email = None
 
         # Now login to the imap server
-        imap_server = self.SUPPORTED_IMAP_SERVERS[email_type]
+        imap_server = imap_server or self.SUPPORTED_IMAP_SERVERS[email_type]
         self.imap = IMAP4_SSL(imap_server)
 
     def __del__(self) -> None:

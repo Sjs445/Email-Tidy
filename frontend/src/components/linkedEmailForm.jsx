@@ -8,9 +8,10 @@ function LinkedEmailForm() {
     const [formData, setFormData ] = useState({
         email: '',
         password: '',
+        imap_server: '',
     });
 
-    const { email, password } = formData;
+    const { email, password, imap_server } = formData;
 
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -33,7 +34,7 @@ function LinkedEmailForm() {
       return toast.error("Third Party Password is required");
     }
 
-    const linkedEmailData = { email, password };
+    const linkedEmailData = { email, password, imap_server };
 
     dispatch(createLinkedEmail(linkedEmailData));
   }
@@ -56,6 +57,13 @@ function LinkedEmailForm() {
               id='password'
               name='password'
               value={password}
+              onChange={onChange}
+            />
+            <label htmlFor='imap_server'>Imap Server</label>
+            <input
+              type='text'
+              id='imap_server'
+              name='imap_server'
               onChange={onChange}
             />
         </div>

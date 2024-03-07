@@ -19,6 +19,7 @@ class LinkedEmails(Base):
     """
 
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    imap_server = Column(String)
     email = Column(String, unique=True, index=True, nullable=False)
     password = Column(LargeBinary, nullable=False)
     is_active = Column(Boolean, default=True)

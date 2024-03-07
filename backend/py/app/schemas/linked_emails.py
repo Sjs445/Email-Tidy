@@ -13,6 +13,7 @@ class LinkedEmailsCreate(LinkedEmailsBase):
     email: EmailStr
     password: str
     user_id: int = None
+    imap_server: str = None
 
 
 class LinkedEmailsUpdate(LinkedEmailsBase):

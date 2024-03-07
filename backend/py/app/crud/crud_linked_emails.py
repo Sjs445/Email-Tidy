@@ -96,7 +96,7 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
             LinkedEmails: The newly created linked_email object
         """
         domain = EmailUnsubscriber.get_domain_from_email(obj_in.email)
-        email_unsubscriber = EmailUnsubscriber(email_type=domain)
+        email_unsubscriber = EmailUnsubscriber(email_type=domain, imap_server=obj_in.imap_server)
 
         if not email_unsubscriber.login(
             email_username=obj_in.email, email_password=obj_in.password
@@ -110,7 +110,7 @@ class CRUDLinkedEmails(CRUDBase[LinkedEmails, LinkedEmailsCreate, LinkedEmailsUp
         obj_in.password = security.encrypt_email_password(obj_in.password)
         obj_in.user_id = user_id
         db_obj = LinkedEmails(
-            email=obj_in.email, password=obj_in.password, user_id=obj_in.user_id
+            email=obj_in.email, password=obj_in.password, user_id=obj_in.user_id, imap_server=obj_in.imap_server
         )
         db.add(db_obj)
         db.commit()
