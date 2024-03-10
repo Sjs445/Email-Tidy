@@ -1,27 +1,27 @@
 import { useEffect} from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { getTaskStatus, reset, updateTaskStatus } from '../features/scanned_emails/scannedEmailSlice';
+import { getTaskStatus, clearTaskId, updateTaskStatus } from '../features/scanned_emails/scannedEmailSlice';
 
 // This component is shared by scanned tasks and unsubscribe tasks. Note the ternary statements.
 function ProgressBar({setScanningDone, linked_email}) {
-    
-    const { scan_task_id, unsubscribe_task_id, progress } = useSelector( (state) => state.scanned_email);
+  
+  const { scan_task_id, unsubscribe_task_id, progress } = useSelector( (state) => state.scanned_email);
+  const filled = progress.filled ? progress.filled : 0;
 
-    const filled = progress.filled ? progress.filled : 0;
-
-    const dispatch = useDispatch();
+  const dispatch = useDispatch();
 
 	useEffect(() => {
-        if ( filled < 100 ) {
-            dispatch(getTaskStatus(scan_task_id ? scan_task_id : unsubscribe_task_id))
-                .then( () => {
-                    setTimeout( () => dispatch(updateTaskStatus()), 1000);
-                });
-        } else {
-            setScanningDone(true);
-            dispatch(reset()); 
-        }
-	},[progress, dispatch])
+    if ( filled < 100 ) {
+        dispatch(getTaskStatus(scan_task_id ? scan_task_id : unsubscribe_task_id))
+          .then( () => {
+              setTimeout( () => dispatch(updateTaskStatus()), 1500);
+          });
+    } else {
+        setScanningDone(true);
+        dispatch(clearTaskId());
+    }
+	},[progress, dispatch]);
+
   return (
 	  <section className='form'>
         { scan_task_id ? 

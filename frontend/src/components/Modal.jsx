@@ -52,7 +52,7 @@ function Modal({open, onClose, scanned_email_id, linked_email}) {
               <h2>Unsubscribe Links</h2>
               <ol>
               {unsubscribe_links.links?.map( ( link ) => (
-                <li key={link.id}><a href={link.link} target="_blank">{
+                <li key={link.id}><a href={link.link} target="_blank" rel="external">{
                   link.link.length > 100 ? link.link.slice(0, 100) : link.link
                 }</a></li>
               ))}

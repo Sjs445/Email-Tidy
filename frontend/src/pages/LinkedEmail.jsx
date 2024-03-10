@@ -25,7 +25,6 @@ function LinkedEmail() {
   const [scanningDone, setScanningDone] = useState(false);
   const [page, setPage] = useState(0);
 
-
   const [formData, setFormData ] = useState([]);
 
   // When someone selects and deselects a sender
@@ -45,7 +44,7 @@ function LinkedEmail() {
     // If no email senders are selected unsubscribe from all
     if ( formData.length == 0 ) {
       if ( window.confirm("Unsubscribe from all email senders? (This may take a while if there are a lot of emails)") ) {
-        dispatch(unsubscribeFromAll({linked_email_address: linked_email}));
+        dispatch(unsubscribeFromAll({linked_email_address: linked_email}))
       }
       return;
     }
@@ -80,7 +79,7 @@ function LinkedEmail() {
       dispatch(reset());
     }
     
-  }, [navigate, dispatch, user, scanningDone]);
+  }, [navigate, dispatch, user, scanningDone] );
 
   // Tells us how many email senders from this page we've seen
   const seenCount = 10 * ( page + 1 );
@@ -100,7 +99,7 @@ function LinkedEmail() {
     <h1>Spam Email Senders</h1>
     <p>{linked_email}</p>
     </section>
-    
+
     <section>
     {email_senders.length > 0 ? (
     <div>
@@ -108,7 +107,7 @@ function LinkedEmail() {
        <h3>Unsubscribe from all spam email senders or select individual senders to unsubscribe from</h3>
     <button className="btn btn-block" onClick={onSubmit}>Unsubscribe</button>
     <div id="scroll" style={{ height: 500, overflow: "auto" }}>
-    
+
     <InfiniteScroll
       dataLength={email_senders.length}
       next={ () => {

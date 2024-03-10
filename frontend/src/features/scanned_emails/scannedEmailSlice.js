@@ -156,7 +156,11 @@ export const scannedEmailSlice = createSlice({
     name: 'scanned_email',
     initialState,
     reducers: {
-        reset: (state) => initialState
+        reset: (state) => initialState,
+        clearTaskId: ( state => {
+            state.scan_task_id = null;
+            state.unsubscribe_task_id = null;
+        })
     },
     extraReducers: (builder) => {
         builder
@@ -268,5 +272,5 @@ export const scannedEmailSlice = createSlice({
     }
 });
 
-export const { reset } = scannedEmailSlice.actions
+export const { reset, clearTaskId } = scannedEmailSlice.actions
 export default scannedEmailSlice.reducer
