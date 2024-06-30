@@ -36,6 +36,7 @@ The following technology is used for development of Email Tidy
 * Python :snake: Fastapi as an API router.
 * Postgresql. For database storage.
 * Nginx. As a server proxy
+* Celery. A taskworker for unsubscribing and scanning.
 * Docker and kubernetes for containerization and ease of deployment.
 
 ### Front End
