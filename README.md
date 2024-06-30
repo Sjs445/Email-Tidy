@@ -9,7 +9,6 @@ The app works by scanning through your email inbox for certain keywords to find 
 ## The goal of Email Tidy :heavy_check_mark:
 
 Email Tidy's mission is to keep unwanted spam out of your inbox to save you valuable time and take back your inbox's freedom. :boom:
-<iframe src="https://giphy.com/embed/6901DbEbbm4o0" width="480" height="269" style="" frameBorder="0" class="giphy-embed" allowFullScreen></iframe>
 
 ## Completely Open Source
 
