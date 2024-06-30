@@ -14,6 +14,8 @@ Email Tidy's mission is to keep unwanted spam out of your inbox to save you valu
 
 Other email cleaning apps are closed source, meaning you have no idea what they are doing with your inbox, possibly selling your private data or even spying on you. Email Tidy is fully open source so you know the app is only performing the function that it needs to in order to unsubscribe you from spam. It will **never** sell your data or store the body of your emails in the system.
 
+![freedom](https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExejZjbXhic3piZ3NhY3ZxM211d3c0aGI1bmVvdHBsdHJ5NHZsbjl1aCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6901DbEbbm4o0/giphy.gif)
+
 ### What data is stored?
 
 This data is stored on our end in order for you to see which emails are being cleaned out and which ones are not spam:
