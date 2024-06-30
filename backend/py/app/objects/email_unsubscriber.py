@@ -22,7 +22,8 @@ from app.config.config import settings
 
 celery = Celery(__name__)
 
-
+# Used to match an https link for unsubscribing.
+UNSUB_LINK_RE = r"(?:(?:https?):\/\/)[\w/\-?=%~.]+\.[\w/\-&?=%~]+"
 
 class EmailUnsubscriber:
     """Email Unsubscriber Class"""
@@ -199,22 +200,18 @@ class EmailUnsubscriber:
         total_emails = range_params[0]
 
         for i in range(*range_params):
-            response, msg = self.imap.fetch(str(i), "(RFC822)")
+
+            # Fetch the email headers first to look for unsubscribe link headers
+            response, headers = self.imap.fetch(str(i), '(BODY.PEEK[HEADER])')
 
             if response != "OK":
                 raise Exception(f"Unable to fetch email: {i}\Response: {response}")
 
-            # Get the email as a message object
-            email_msg = email.message_from_bytes(msg[0][1])
+            # Get the email headers as a message object
+            email_msg = email.message_from_bytes(headers[0][1])
 
             # Get the time the email was added to the inbox.
-            status, data = self.imap.fetch(str(i), "(INTERNALDATE)")
-
-            if status != "OK":
-                raise Exception(f"Unable to fetch INTERNALDATE for email: {i}")
-
-            str_datetime = data[0].decode().split('"')[1]
-            datetime_obj = parsedate_to_datetime(str_datetime)
+            datetime_obj = parsedate_to_datetime(email_msg["Date"])
 
             # Scan the email Message object
             scanned_email = self._scan_email_message_obj(db, email_msg, self.email, datetime_obj)
@@ -291,15 +288,12 @@ class EmailUnsubscriber:
         db.flush()
 
         # Get unsubscribe links
-        unsubscribe_links = cls._get_unsubscribe_links_from_email(
-            email_msg, email_subject
-        )
+        unsubscribe_links = cls._get_unsubscribe_links_from_email(email_msg)
 
         # Add all unsubscribe links to the unsubscribe_links table
         unsubscribe_link_objs = []
 
-        # Convert to a set and then back to a list to remove duplicate links
-        for link in list(set(unsubscribe_links)):
+        for link in unsubscribe_links:
 
             # Don't add an unsubscribe link that exists in the database already
             link_exists = db.execute(
@@ -363,20 +357,33 @@ class EmailUnsubscriber:
 
     @classmethod
     def _get_unsubscribe_links_from_email(
-        cls, email_msg: Message, email_subject: str
+        cls, email_msg: Message
     ) -> List[str]:
         """Takes an email message object and parses the body to find links
         that will (hopefully) unsubscribe us from the email.
 
         Args:
             email_msg (Message): The email Message object.
-            email_subject (str): The email subject. Printed to the console
-             if decoding the email fails.
 
         Returns:
             List[str]: A list of possible unsubscribe links from the email Message.
         """
         unsubscribe_links = []
+
+        # Check the email header for the List-Unsubscribe header for a list of unsubscribe links.
+        list_unsubscribe = email_msg["List-Unsubscribe"]
+
+        # TODO: List-Unsubscribe often contains a mailto link. Feature where we can expand to support
+        # mailto links.
+        if list_unsubscribe:
+            for link in list_unsubscribe.split(','):
+                match_url = re.search(UNSUB_LINK_RE, link)
+                if match_url is not None and match_url.group() not in unsubscribe_links:
+                    unsubscribe_links.append(match_url.group())
+
+        # Later on we can support a full scan of the entire email as a fallback and look for the unsubscribe
+        # links in the body of the email. But for speed, for now we just check the headers.
+        return unsubscribe_links
 
         # A multipart email message may contain both a text/plain AND text/html email.
         if email_msg.is_multipart():
@@ -499,7 +506,7 @@ class EmailUnsubscriber:
 
                 # Get the link following the unsubscribe keyword
                 match = re.search(
-                    r"(?:(?:https?):\/\/)[\w/\-?=%~.]+\.[\w/\-&?=%~]+",
+                    UNSUB_LINK_RE,
                     trimmed_body,
                 )
 

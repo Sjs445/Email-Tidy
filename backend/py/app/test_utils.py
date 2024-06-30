@@ -59,7 +59,7 @@ def generate_auth_header(user_id: int) -> dict:
 
 
 def generate_email_message(
-    to_email: str, from_email: str, subject: str, body: str
+    to_email: str, from_email: str, subject: str, body: str, list_unsubscribe: list,
 ) -> EmailMessage:
     """Generate an email message object. Currently only supports html
     emails. TODO: text/plain
@@ -69,6 +69,7 @@ def generate_email_message(
         from_email (str): The sender email address
         subject (str): The subject of the email
         body (str): The body of the email
+        list_unsubscribe (list): A list of unsubscribe links to add as the List-Unsubscribe header
 
     Returns:
         EmailMessage: The email message object
@@ -78,6 +79,7 @@ def generate_email_message(
     message.add_header("To", to_email)
     message.add_header("From", from_email)
     message.add_header("Subject", subject)
+    message.add_header("List-Unsubscribe", ",".join(list_unsubscribe))
     message.set_content(body)
 
     # TODO: pass a param for either text/plain or text/html?

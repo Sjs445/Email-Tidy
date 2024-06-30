@@ -24,6 +24,7 @@ class TestLinkEmail:
         cls.session = get_session()
         cls.user = generate_user(cls.session)
         cls.auth_header = generate_auth_header(cls.user.id)
+        cls.list_unsubscribe = [ f'<https://example.com/unsubscribe_me/{i}>' for i in range(20) ]
 
     @classmethod
     def teardown_class(cls) -> None:
@@ -61,6 +62,7 @@ class TestLinkEmail:
                 from_email="spammer@email.com",
                 subject=f"Spam Email - {i}",
                 body=general_template,
+                list_unsubscribe=[self.list_unsubscribe[i]],
             )
             EmailUnsubscriber._scan_email_message_obj(
                 db=self.session,
@@ -82,18 +84,19 @@ class TestLinkEmail:
         ).json()
         scanned_emails = results.get("scanned_emails", [])
 
-        # FIXME: The results set returned is sorted by string so this fails
         expected_scanned_emails_page_0 = [
             {
                 "id": mock.ANY,
-                "unsubscribe_link_count": 1 if i == 0 else 0,
+                "unsubscribe_link_count": 1,
                 "subject": f"Spam Email - {i}",
                 "total_count": 20,
-                "unsubscribe_statuses": ["pending"] if i == 0 else None
+                "unsubscribe_statuses": ["pending"],
             }
             for i in range(10)
         ]
-        assert scanned_emails == expected_scanned_emails_page_0
+
+        # frozenset allows for testing without order.
+        assert [ frozenset(email) for email in scanned_emails ] == [ frozenset(email) for email in expected_scanned_emails_page_0 ]
 
         # Fetch the list of scanned emails for page 1
         # it should contain the rest of the scanned emails
@@ -115,7 +118,7 @@ class TestLinkEmail:
             }
             for i in range(10, 20)
         ]
-        assert scanned_emails2 == expected_scanned_emails_page_1
+        assert [ frozenset(link) for link in scanned_emails2 ] == [ frozenset(link) for link in expected_scanned_emails_page_1 ]
 
         # Fetch the list of scanned emails for page 2
         # it should not contain anymore emails.
@@ -139,7 +142,7 @@ class TestLinkEmail:
             {
                 "scanned_email_id": scanned_email_id,
                 "id": mock.ANY,
-                "link": "https://github.com/konsav/email-templates/",
+                "link": self.list_unsubscribe[0].strip('<>'),
                 "unsubscribe_status": "pending",
                 "insert_ts": mock.ANY,
                 "linked_email_address": "email@yahoo.com",
@@ -158,8 +161,8 @@ class TestLinkEmail:
             {
                 "email_from": "spammer@email.com",
                 "scanned_email_count": 20,
-                "unsubscribe_link_count": 1,
+                "unsubscribe_link_count": 20,
                 "total_count": 1,
-                "unsubscribe_statuses": ["pending"],
+                "unsubscribe_statuses": ["pending" for _ in range(20)],
             }
         ]
